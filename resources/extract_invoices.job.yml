@@ -1,0 +1,44 @@
+# A sample job for TestBundle.
+
+resources:
+  jobs:
+    data_extraction_job:
+      name: data_extraction_job
+
+      permissions:
+        - group_name: users
+          level: CAN_MANAGE
+
+      #trigger:
+      #  pause_status: UNPAUSED
+      #  file_arrival:
+      #    url: ${var.volume}
+
+      parameters:
+        - name: catalog
+          default: ${var.catalog}
+        - name: schema
+          default: ${var.schema}
+        - name: table
+          default: ${var.table}
+        - name: volume
+          default: ${var.volume}
+
+      tasks:
+        - task_key: Extraction
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.data_extraction_etl.id}
+
+        - task_key: update_knowledge_assistant
+          notebook_task:
+            notebook_path: ../src/DataExtractionETL/notebooks/knowledge_assistant/update_knowledge_assistant.ipynb
+            base_parameters:
+              assistant_id: ${var.knowledge_assistant_id}
+          environment_key: default
+
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "4"
+
+      performance_target: PERFORMANCE_OPTIMIZED

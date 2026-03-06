@@ -1,0 +1,55 @@
+# Databricks asset bundle for Data Extraction App
+# See https://docs.databricks.com/dev-tools/bundles/index.html for documentation.
+bundle:
+  name: data-extraction
+  uuid: 766f7306-dbd5-4a65-aacf-a26adf4da98d
+
+include:
+  - resources/*.yml
+  - resources/*/*.yml
+
+sync:
+  include:
+    - .build
+    - .build/*
+    - .build/**
+
+artifacts:
+  app:
+    build: uv run apx build
+
+resources:
+  apps:
+    data-extraction-app:
+      name: "data-extraction-app"
+      description: "Data Extraction App with PDF upload"
+      source_code_path: ${workspace.file_path}/.build
+
+# Variable declarations for jobs and pipelines
+variables:
+  catalog:
+    description: The catalog to use
+    default: data_extraction
+  schema:
+    description: The schema to use
+    default: nikk
+  table:
+    description: Table name for generated data
+    default: app
+  volume:
+    description: The volume to use for uploading files
+    default: /Volumes/data_extraction/default/documents
+  knowledge_assistant_id:
+    description: Knowledge Assistant id for syncing sources after extraction (used by update_knowledge_assistant notebook)
+    default: "0c03ff24-b368-47bd-8c4e-86fd3b8b962d"
+
+targets:
+  dev:
+    # The default target uses 'mode: development' to create a development copy.
+    # - Deployed resources get prefixed with '[dev my_user_name]'
+    # - Any job schedules and triggers are paused by default.
+    # See also https://docs.databricks.com/dev-tools/bundles/deployment-modes.html.
+    mode: development
+    default: true
+    workspace:
+      host: https://e2-demo-field-eng.cloud.databricks.com
