@@ -32,7 +32,7 @@ variables:
     default: data_extraction
   schema:
     description: The schema to use
-    default: nikk
+    default: default
   table:
     description: Table name for generated data
     default: app
