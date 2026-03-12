@@ -32,7 +32,7 @@ variables:
     default: data_extraction
   schema:
     description: The schema to use
-    default: default
+    default: data_extraction
   table:
     description: Table name for generated data
     default: app
@@ -41,7 +41,7 @@ variables:
     default: /Volumes/data_extraction/default/documents
   knowledge_assistant_id:
     description: Knowledge Assistant id for syncing sources after extraction (used by update_knowledge_assistant notebook)
-    default: "0c03ff24-b368-47bd-8c4e-86fd3b8b962d"
+    default: "c04ad5d0-312c-4465-964f-98fc55679c3c"
 
 targets:
   dev:

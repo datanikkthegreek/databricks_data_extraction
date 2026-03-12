@@ -113,19 +113,19 @@ class AppConfig(BaseSettings):
         description="Volume path for PDF storage",
     )
     processing_job_id: str = Field(
-        default="617747084720105",
+        default="170364782025692",
         description="Job ID for Execute processing",
     )
 
     # Tables
     app_ai_query_table: str = Field(
-        default="data_extraction.nikk.app_invoices_processed",
+        default="data_extraction.data_extraction.app_productmanuals_processed",
         description="Full table name (catalog.schema.table) for AI query results",
     )
 
     # Agent chat
     agent_endpoint: str = Field(
-        default="mas-631c02b3-endpoint",
+        default="mas-ce26527c-endpoint",
         description="Databricks agent endpoint name for chat",
     )
     # Supervisor Agent (multi-agent) endpoint created in Agents → Supervisor Agent
