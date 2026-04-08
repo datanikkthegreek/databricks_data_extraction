@@ -1,5 +1,7 @@
 from pyspark import pipelines as dp
-from pyspark.sql import SparkSession
+import pyspark.sql.functions as F
+
+table_prefix = spark.conf.get("table")
 
 EXTRACT_PROMPT = (
     "Extract product specifications from this power tool manual. Focus only on the English language sections. "
@@ -26,36 +28,21 @@ EXTRACT_SCHEMA = """{
       "compatible_chargers": {"type": "string", "description": "List of compatible chargers or charger model numbers, comma-separated. Look in accessories, charger, or recommended sections."}
     }"""
 
-
-def _register() -> None:
-    spark = SparkSession.getActiveSession()
-    if spark is None:
-        raise RuntimeError("SparkSession required for pipeline dataset definitions")
-    prefix = spark.conf.get("pipelines.table", "app")
-    prompt_escaped = EXTRACT_PROMPT.replace("'", "''")
-
-    @dp.table(
-        name=f"{prefix}_productmanuals_extract",
-        comment="Extracted product specifications (manufacturer, model, voltage, torque, etc.) via AI from parsed product manual PDFs",
+@dp.table(
+    name=f"{table_prefix}_productmanuals_extract",
+    comment="Extracted product specifications (manufacturer, model, voltage, torque, etc.) via AI from parsed product manual PDFs",
+)
+def productmanuals_extract():
+    return (
+        spark.readStream.table(f"{table_prefix}_productmanuals_parsed")
+        .select(
+            F.col("path"),
+            F.col("file_name"),
+            F.col("file_size"),
+            F.expr(f"""ai_extract(
+                parsed,
+                '{EXTRACT_SCHEMA}',
+                map('version', '2.0', 'instructions', '{EXTRACT_PROMPT}')
+            )""").alias("ai_result"),
+        )
     )
-    def productmanuals_extract():
-        return spark.sql(
-            f"""
-SELECT
-    path,
-    file_name,
-    file_size,
-    ai_extract(
-        parsed,
-        schema => '{EXTRACT_SCHEMA}',
-        options => map(
-          'version', '2.0',
-          'instructions', '{prompt_escaped}'
-        )
-    ) AS ai_result
-FROM STREAM({prefix}_productmanuals_parsed)
-"""
-        )
-
-
-_register()
