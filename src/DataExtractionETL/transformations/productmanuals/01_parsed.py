@@ -1,8 +1,9 @@
 from pyspark import pipelines as dp
 import pyspark.sql.functions as F
 
+# I/O variables
 table_prefix = spark.conf.get("table")
-volume = spark.conf.get("volume")
+input_volume_path = f"{spark.conf.get('volume')}/productmanuals"
 
 @dp.table(
     name=f"{table_prefix}_productmanuals_parsed",
@@ -12,7 +13,7 @@ def productmanuals_parsed():
     return (
         spark.readStream.format("cloudFiles")
         .option("cloudFiles.format", "binaryFile")
-        .load(f"{volume}/productmanuals")
+        .load(input_volume_path)
         .withColumn(
             "parsed",
             F.ai_parse_document(
@@ -25,6 +26,5 @@ def productmanuals_parsed():
             F.col("_metadata.file_name").alias("file_name"),
             F.col("_metadata.file_size").alias("file_size"),
             F.col("parsed"),
-            F.expr("parsed:document::string").alias("document"),
         )
     )

@@ -1,9 +1,12 @@
 from pyspark import pipelines as dp
 import pyspark.sql.functions as F
 
+# I/O variables
 table_prefix = spark.conf.get("table")
+input_table_path = f"{table_prefix}_productmanuals_extract"
 
-PROCESSED_SCHEMA = """
+# Config variables
+schema = """
     file_name STRING COMMENT 'Original PDF file name.',
     manufacturer STRING COMMENT 'Brand or manufacturer name.',
     model_number STRING COMMENT 'Product model number or identifier.',
@@ -25,11 +28,11 @@ PROCESSED_SCHEMA = """
 @dp.table(
     name=f"{table_prefix}_productmanuals_processed",
     comment="Processed product catalog from power tool manuals: structured specifications for cross-vendor comparison, procurement intelligence, and product recommendation.",
-    schema=PROCESSED_SCHEMA,
+    schema=schema,
 )
 def productmanuals_processed():
     return (
-        spark.readStream.table(f"{table_prefix}_productmanuals_extract")
+        spark.readStream.table(input_table_path)
         .select(
             F.col("file_name"),
             F.expr("ai_result:response.manufacturer::STRING").alias("manufacturer"),
