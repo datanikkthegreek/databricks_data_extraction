@@ -3,13 +3,13 @@ import pyspark.sql.functions as F
 
 table_prefix = spark.conf.get("table")
 
-EXTRACT_PROMPT = (
-    "Extract product specifications from this power tool manual. Focus only on the English language sections. "
-    "All extracted values (including product_name) must be in English. Look for technical data in specification "
-    "tables, feature lists, and product descriptions throughout the entire document. If a specification is "
-    "mentioned anywhere in the document (not just in tables), extract it. If multiple models are listed, "
-    "extract the primary model."
-)
+EXTRACT_PROMPT = """
+    Extract product specifications from this power tool manual. Focus only on the English language sections.
+    All extracted values (including product_name) must be in English. Look for technical data in specification
+    tables, feature lists, and product descriptions throughout the entire document. If a specification is
+    mentioned anywhere in the document (not just in tables), extract it. If multiple models are listed,
+    extract the primary model.
+"""
 
 EXTRACT_SCHEMA = """{
       "manufacturer": {"type": "string", "description": "Brand or manufacturer name, e.g. Bosch, Makita, BLACK+DECKER"},
