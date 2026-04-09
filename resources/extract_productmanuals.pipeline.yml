@@ -8,7 +8,7 @@ resources:
       serverless: true
       root_path: "../src/DataExtractionETL"
 
-      # Pipeline configuration: passed as parameters to SQL (use ${key} in SQL)
+      # Pipeline configuration: available as spark.conf <key> in Python (and ${key} in archived SQL)
       configuration:
         table: ${var.table}
         volume: ${var.volume}
