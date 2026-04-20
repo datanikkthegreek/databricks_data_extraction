@@ -31,7 +31,7 @@ resources:
 
         - task_key: update_knowledge_assistant
           notebook_task:
-            notebook_path: ../src/DataExtractionETL/notebooks/knowledge_assistant/update_knowledge_assistant.ipynb
+            notebook_path: ../src/knowledge_assistant/update_knowledge_assistant.ipynb
             base_parameters:
               assistant_id: ${var.knowledge_assistant_id}
           environment_key: default

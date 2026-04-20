@@ -1,8 +1,8 @@
 [project]
 name = "data-extraction-app"
 dynamic = ["version"]
-description = "Data Extraction App with PDF upload and TestBundle pipelines"
-readme = "README.md"
+description = "Data Extraction App with PDF upload"
+readme = "../README.md"
 authors = [{ name = "nikolaos.servos@databricks.com" }]
 requires-python = ">=3.11"
 dependencies = [
@@ -21,13 +21,7 @@ dev = [
     "apx==0.2.6",
     "pytest",
     "ruff",
-    "databricks-dlt",
-    "databricks-connect>=15.4,<15.5",
-    "ipykernel",
 ]
-
-[project.scripts]
-main = "TestBundle.main:main"
 
 [tool.apx.metadata]
 app-name = "data-extraction-app"

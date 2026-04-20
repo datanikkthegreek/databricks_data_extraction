@@ -8,7 +8,7 @@ resources:
       schema: ${var.schema}
       channel: preview
       serverless: true
-      root_path: "../src/DataExtractionETL"
+      root_path: ../src/transformations
 
       # Pipeline configuration: passed as parameters to SQL (use ${key} in SQL)
       configuration:
@@ -17,7 +17,7 @@ resources:
 
       libraries:
         - glob:
-            include: ../src/DataExtractionETL/transformations/invoices/**
+            include: ../src/transformations/invoices/**
 
       environment:
         dependencies:

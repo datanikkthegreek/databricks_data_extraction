@@ -20,15 +20,15 @@ Complete these steps before developing or deploying the app.
    - A valid profile shows `YES`.
 
 Use this profile for bundle deploy and CLI commands, e.g.  
-`databricks bundle deploy -p <profile-name>`.
+`cd databricks_app && databricks bundle deploy -p <profile-name>` (or `databricks_etl` for ETL).
 
 ---
 
-## 2. Update all configs in config.py and databricks.yml
+## 2. Update all configs in config.py and the bundle YAML files
 
 ### config.py
 
-Edit `src/data_extraction_app/backend/config.py` (or override via environment variables with prefix `DATA_EXTRACTION_` or a `.env` file):
+Edit [databricks_app/src/data_extraction_app/backend/config.py](databricks_app/src/data_extraction_app/backend/config.py) (or override via environment variables with prefix `DATA_EXTRACTION_` or a `.env` file in `databricks_app/`):
 
 | Setting | Description | Example / env |
 |--------|--------------|----------------|
@@ -42,40 +42,44 @@ Edit `src/data_extraction_app/backend/config.py` (or override via environment va
 
 Set these to match your workspace, warehouse, volume, job, and table.
 
-### databricks.yml
+### Bundle configuration
 
-Edit `databricks.yml` (and any target-specific config):
-
-- **variables**: `catalog`, `schema`, `table`, `volume`, `knowledge_assistant_id` — set to your catalog, schema, volume path, and Knowledge Assistant id (for the update_knowledge_assistant job task).
-- **targets.***.**workspace.host**: Workspace URL for the target (e.g. `dev`).
+- **[databricks_etl/databricks.yml](databricks_etl/databricks.yml)** (and any target-specific config): **variables** — `catalog`, `schema`, `table`, `volume`, `knowledge_assistant_id` — set to your catalog, schema, volume path, and Knowledge Assistant id (for the update_knowledge_assistant job task). Per-target **workspace.host** — workspace URL for the target (e.g. `dev`).
+- **[databricks_app/databricks.yml](databricks_app/databricks.yml)**: app resource and targets; override **workspace.host** per target if needed.
 
 Ensure `knowledge_assistant_id` is set if you use the extract-invoices job (which runs the update_knowledge_assistant notebook after the pipeline).
 
 ---
 
-## 3. Deploy the bundle and then the app using the build path of the app
+## 3. Deploy the bundles and the app
 
-1. **Build the app** (produces the `.build` directory used as the app’s source):
-
-   ```bash
-   uv run apx build
-   ```
-
-2. **Deploy the bundle** (syncs bundle assets and deploys jobs, pipelines, and the app from the bundle’s app resource):
+1. **Optional – build the app locally** (the app bundle also runs `uv run apx build` during deploy from [databricks_app/](databricks_app/); use this step if you want a local `.build` first):
 
    ```bash
-   databricks bundle deploy -p <profile-name>
+   cd databricks_app && uv run apx build
    ```
 
-   The bundle’s app resource uses `source_code_path: ./.build`, so the built app in `.build` is what gets deployed when the bundle is deployed.
-
-3. **Optional – deploy only the app** (if you already deployed the bundle and only need to update the app):
+2. **Deploy the app bundle** (syncs bundle files, runs the build, and deploys the Databricks App from the bundle’s app resource):
 
    ```bash
-   databricks apps deploy data-extraction-app --source-code-path .build -p <profile-name>
+   cd databricks_app && databricks bundle deploy -p <profile-name>
    ```
 
-   Use the same profile as in step 1. The app name must match the one in your bundle (`data-extraction-app` by default).
+   The app resource uses `source_code_path: ${workspace.file_path}/.build` with `.build` under [databricks_app/](databricks_app/) after `apx build`.
+
+3. **Deploy the ETL bundle** (jobs and DLT pipelines):
+
+   ```bash
+   cd databricks_etl && databricks bundle deploy -p <profile-name>
+   ```
+
+4. **Optional – deploy only the app** (if you already deployed the app bundle and only need to update the app):
+
+   ```bash
+   cd databricks_app && databricks apps deploy data-extraction-app --source-code-path .build -p <profile-name>
+   ```
+
+   Use the same profile as for bundle deploy. The app name must match the one in your bundle (`data-extraction-app` by default).
 
 ---
 

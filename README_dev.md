@@ -13,12 +13,14 @@ See [README.md](README.md) for user setup steps (Databricks CLI and profile).
 
 ## Quick Start
 
+App code and [pyproject.toml](databricks_app/pyproject.toml) live under [databricks_app/](databricks_app/). Run apx and uv commands from that directory (or prefix with `cd databricks_app &&`).
+
 ### Development Mode
 
 Start all development servers (backend, frontend, and OpenAPI watcher) in detached mode:
 
 ```bash
-uv run apx dev start
+cd databricks_app && uv run apx dev start
 ```
 
 This will start an apx development server, which in turn runs backend, frontend and OpenAPI watcher. 
@@ -27,6 +29,8 @@ All servers run in the background, with logs kept in-memory of the apx dev serve
 ### Monitoring & Logs
 
 ```bash
+cd databricks_app
+
 # View all logs
 uv run apx dev logs
 
@@ -45,7 +49,7 @@ uv run apx dev stop
 Run type checking and linting for both TypeScript and Python:
 
 ```bash
-uv run apx dev check
+cd databricks_app && uv run apx dev check
 ```
 
 ## Build
@@ -53,15 +57,21 @@ uv run apx dev check
 Create a production-ready build:
 
 ```bash
-uv run apx build
+cd databricks_app && uv run apx build
 ```
 
 ## Deployment
 
-Deploy to Databricks:
+This repository has two [Databricks asset bundles](https://docs.databricks.com/dev-tools/bundles/index.html): one for the app and one for ETL jobs and pipelines. Deploy each from its folder:
 
 ```bash
-databricks bundle deploy -p <your-profile>
+# Databricks App (apx build runs during deploy from databricks_app/)
+cd databricks_app && databricks bundle deploy -p <your-profile>
+```
+
+```bash
+# Jobs and DLT pipelines
+cd databricks_etl && databricks bundle deploy -p <your-profile>
 ```
 
 ---

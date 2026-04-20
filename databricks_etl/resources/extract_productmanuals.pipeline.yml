@@ -6,7 +6,7 @@ resources:
       schema: ${var.schema}
       channel: preview
       serverless: true
-      root_path: "../src/DataExtractionETL"
+      root_path: ../src/transformations
 
       # Pipeline configuration: available as spark.conf <key> in Python (and ${key} in archived SQL)
       configuration:
@@ -15,7 +15,7 @@ resources:
 
       libraries:
         - glob:
-            include: ../src/DataExtractionETL/transformations/productmanuals/**
+            include: ../src/transformations/productmanuals/**
 
       environment:
         dependencies:

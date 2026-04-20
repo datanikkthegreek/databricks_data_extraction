@@ -10,10 +10,10 @@ wheels/
 .venv
 
 # version file
-src/data_extraction_app/_version.py
+databricks_app/src/data_extraction_app/_version.py
 
 # metadata file
-src/data_extraction_app/_metadata.py
+databricks_app/src/data_extraction_app/_metadata.py
 
 # build files
 dist
@@ -37,7 +37,7 @@ node_modules/
 .apx/
 
 # UI dist folder
-src/data_extraction_app/__dist__/
+databricks_app/src/data_extraction_app/__dist__/
 
 # IDE
 .vscode/
