@@ -38,6 +38,17 @@ resources:
               table_prefix: ${var.table_prefix}
               volume: ${var.volume}
           environment_key: default
+        - task_key: create_genie_space
+          depends_on:
+            - task_key: Extraction
+          notebook_task:
+            notebook_path: ../src/genie_space/create_genie_space_invoices.ipynb
+            base_parameters:
+              catalog: ${var.catalog}
+              schema: ${var.schema}
+              table_prefix: ${var.table_prefix}
+              warehouse_id: ${var.warehouse_id}
+          environment_key: default
 
       environments:
         - environment_key: default
