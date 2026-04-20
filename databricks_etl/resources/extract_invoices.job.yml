@@ -27,7 +27,7 @@ resources:
       tasks:
         - task_key: Extraction
           pipeline_task:
-            pipeline_id: ${resources.pipelines.data_extraction_etl.id}
+            pipeline_id: ${resources.pipelines.extract_invoices_etl.id}
 
         - task_key: create_or_update_knowledge_assistant
           notebook_task:
