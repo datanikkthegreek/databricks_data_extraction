@@ -26,11 +26,14 @@ resources:
         - task_key: Extraction
           pipeline_task:
             pipeline_id: ${resources.pipelines.extract_productmanuals_etl.id}
-        - task_key: update_knowledge_assistant
+        - task_key: create_or_update_knowledge_assistant
+          depends_on:
+            - task_key: Extraction
           notebook_task:
-            notebook_path: ../src/knowledge_assistant/update_knowledge_assistant.ipynb
+            notebook_path: ../src/knowledge_assistant/create_or_update_knowledge_assistant_productmanuals.ipynb
             base_parameters:
-              assistant_id: ${var.knowledge_assistant_id}
+              table_prefix: ${var.table_prefix}
+              volume: ${var.volume}
           environment_key: default
 
       environments:

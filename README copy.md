@@ -44,10 +44,10 @@ Set these to match your workspace, warehouse, volume, job, and table.
 
 ### Bundle configuration
 
-- **[databricks_etl/databricks.yml](databricks_etl/databricks.yml)** (and any target-specific config): **variables** — `catalog`, `schema`, `table_prefix`, `volume`, `knowledge_assistant_id` — set to your catalog, schema, table name prefix for generated Delta tables (e.g. `app` → `app_invoices_parsed`), volume path, and Knowledge Assistant id (for the update_knowledge_assistant job task). Per-target **workspace.host** — workspace URL for the target (e.g. `dev`).
+- **[databricks_etl/databricks.yml](databricks_etl/databricks.yml)** (and any target-specific config): **variables** — `catalog`, `schema`, `table_prefix`, `volume`, `warehouse_id` — set to your catalog, schema, table name prefix for generated Delta tables (e.g. `app` → `app_invoices_parsed`), volume path, and SQL warehouse id for Genie notebooks. Per-target **workspace.host** — workspace URL for the target (e.g. `dev`).
 - **[databricks_app/databricks.yml](databricks_app/databricks.yml)**: app resource and targets; override **workspace.host** per target if needed.
 
-Ensure `knowledge_assistant_id` is set if you use the extract-invoices job (which runs the update_knowledge_assistant notebook after the pipeline).
+Extract jobs run **`create_or_update_knowledge_assistant_*`** notebooks after the pipeline: they create a Knowledge Assistant (and files source) if missing for the configured **display name**, otherwise sync knowledge sources. Adjust `DISPLAY_NAME` and paths inside those notebooks if needed.
 
 ---
 

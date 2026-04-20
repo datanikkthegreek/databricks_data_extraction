@@ -1,4 +1,69 @@
-"""Knowledge Assistant REST API helpers (create, get, knowledge sources, sync)."""
+"""Knowledge Assistant REST API helpers (create, list, get, knowledge sources, sync)."""
+
+
+def list_knowledge_assistants(
+    workspace_client,
+    *,
+    page_size: int | None = None,
+    page_token: str | None = None,
+):
+    """List Knowledge Assistants (GET ``/api/2.1/knowledge-assistants``).
+
+    ``page_size`` is optional in ``[1, 100]``; if omitted, the API returns up to 100 items.
+    ``page_token`` is optional; pass the ``next_page_token`` from a previous response for the next page.
+
+    Returns a dict with ``knowledge_assistants`` (list) and optional ``next_page_token``.
+    """
+    query: dict[str, int | str] = {}
+    if page_size is not None:
+        query["page_size"] = page_size
+    if page_token is not None:
+        query["page_token"] = page_token
+    return workspace_client.api_client.do(
+        "GET",
+        "/api/2.1/knowledge-assistants",
+        query=query,
+    )
+
+
+def get_knowledge_assistant_id_by_name(workspace_client, name: str) -> str | None:
+    """Return the ``id`` of the first Knowledge Assistant whose ``name`` equals ``name`` (stripped), else ``None``.
+
+    Lists pages of 100 via :func:`list_knowledge_assistants` until a match is found or pages are exhausted.
+    """
+    want = name.strip()
+    page_token: str | None = None
+    while True:
+        resp = list_knowledge_assistants(
+            workspace_client, page_size=100, page_token=page_token
+        )
+        for assistant in resp.get("knowledge_assistants") or []:
+            if (assistant.get("name") or "").strip() == want:
+                return assistant.get("id")
+        page_token = resp.get("next_page_token")
+        if not page_token:
+            break
+    return None
+
+
+def get_knowledge_assistant_id_by_display_name(workspace_client, display_name: str) -> str | None:
+    """Return the ``id`` of the first Knowledge Assistant whose ``display_name`` matches (stripped), else ``None``.
+
+    Lists pages of 100 via :func:`list_knowledge_assistants` until a match is found or pages are exhausted.
+    """
+    want = display_name.strip()
+    page_token: str | None = None
+    while True:
+        resp = list_knowledge_assistants(
+            workspace_client, page_size=100, page_token=page_token
+        )
+        for assistant in resp.get("knowledge_assistants") or []:
+            if (assistant.get("display_name") or "").strip() == want:
+                return assistant.get("id")
+        page_token = resp.get("next_page_token")
+        if not page_token:
+            break
+    return None
 
 
 def create_knowledge_assistant(

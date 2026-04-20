@@ -21,9 +21,9 @@ variables:
   volume:
     description: The volume to use for uploading files
     default: /Volumes/data_extraction/default/documents
-  knowledge_assistant_id:
-    description: Knowledge Assistant id for syncing sources after extraction (used by update_knowledge_assistant notebook)
-    default: "c04ad5d0-312c-4465-964f-98fc55679c3c"
+  warehouse_id:
+    description: SQL warehouse ID for Genie spaces (serverless SQL / Genie UI)
+    default: "4b9b953939869799"
 
 targets:
   dev:
