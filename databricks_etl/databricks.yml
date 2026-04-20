@@ -2,7 +2,6 @@
 # See https://docs.databricks.com/dev-tools/bundles/index.html for documentation.
 bundle:
   name: data-extraction-etl
-  uuid: 82a1b2c3-d4e5-46f7-a8b9-c0d1e2f3a4b5
 
 include:
   - resources/*.yml
@@ -11,19 +10,19 @@ include:
 variables:
   catalog:
     description: The catalog to use
-    default: data_extraction
+    default: nikks_fevm_workspace_7405607030687545
   schema:
     description: The schema to use
-    default: data_extraction
+    default: test1
   table_prefix:
-    description: Prefix for generated Delta table names (e.g. app -> app_invoices_parsed)
-    default: app
+    description: Prefix for Delta tables (e.g. app_invoices_parsed) and workspace job/pipeline names (e.g. app_data_extraction_etl).
+    default: extract_1
   volume:
     description: The volume to use for uploading files
-    default: /Volumes/data_extraction/default/documents
+    default: /Volumes/nikks_fevm_workspace_7405607030687545/test1/documents/
   warehouse_id:
     description: SQL warehouse ID for Genie spaces (serverless SQL / Genie UI)
-    default: "4b9b953939869799"
+    default: "4615730c28d25332"
 
 targets:
   dev:

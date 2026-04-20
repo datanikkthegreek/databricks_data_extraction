@@ -3,7 +3,7 @@
 resources:
   pipelines:
     data_extraction_etl:
-      name: data_extraction_etl
+      name: ${var.table_prefix}_extract_invoices_etl
       catalog: ${var.catalog}
       schema: ${var.schema}
       channel: preview
