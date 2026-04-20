@@ -2,7 +2,7 @@
 
 resources:
   jobs:
-    data_extraction_job:
+    extract_invoices_job:
       name: ${var.table_prefix}_extract_invoices_job
 
       permissions:
