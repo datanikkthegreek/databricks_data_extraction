@@ -22,6 +22,55 @@ _TOOL_TYPES = frozenset(
 )
 
 
+def list_supervisor_agents(
+    workspace_client,
+    *,
+    page_size: int | None = None,
+    page_token: str | None = None,
+):
+    """List Supervisor Agents (GET ``/api/2.1/supervisor-agents``). Returns API JSON (items + optional ``next_page_token``)."""
+    query: dict[str, int | str] = {}
+    if page_size is not None:
+        query["page_size"] = page_size
+    if page_token is not None:
+        query["page_token"] = page_token
+    return workspace_client.api_client.do(
+        "GET",
+        "/api/2.1/supervisor-agents",
+        query=query,
+    )
+
+
+def get_supervisor_agent_id_by_display_name(workspace_client, display_name: str) -> str | None:
+    """Return ``supervisor_agent_id`` for the first agent whose ``display_name`` matches (stripped), else ``None``."""
+    want = display_name.strip()
+    page_token: str | None = None
+    while True:
+        resp = list_supervisor_agents(workspace_client, page_size=100, page_token=page_token)
+        items = (
+            resp.get("supervisor_agents")
+            or resp.get("agents")
+            or resp.get("items")
+            or []
+        )
+        for item in items:
+            if (item.get("display_name") or "").strip() == want:
+                return item.get("supervisor_agent_id") or item.get("id")
+        page_token = resp.get("next_page_token")
+        if not page_token:
+            break
+    return None
+
+
+def get_supervisor_agent(workspace_client, supervisor_agent_id: str):
+    """GET a Supervisor Agent by id. Path uses ``supervisor_agent_id`` (UUID)."""
+    sid = supervisor_agent_id.strip()
+    return workspace_client.api_client.do(
+        "GET",
+        f"/api/2.1/supervisor-agents/{sid}",
+    )
+
+
 def create_supervisor_agent(
     workspace_client,
     display_name: str,
