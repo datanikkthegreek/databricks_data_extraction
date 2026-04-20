@@ -1,10 +1,38 @@
-This 
+The goal of this solution accelerator is to transform unstructured product manuals into structured, queryable data using Databricks Agent Bricks AI Functions, enabling organizations to build a complete document intelligence pipeline without custom model training or rigid templates. This solution addresses the challenge of extracting critical technical data—such as product specifications and component compatibility—from varying document formats and inconsistent vendor terminology, which is too slow and error-prone for manual processing.
+
+### End-to-End Architecture Summary
+
+The architecture is built as an incremental and production-ready **Lakeflow Spark Declarative Pipeline** on Databricks, orchestrated by **Lakeflow Jobs** and governed by **Unity Catalog**.
+
+The solution involves three main pipeline steps:
+
+1.  **Parse PDFs with `ai_parse_document`**: Raw PDF manuals are read as binary files from a Unity Catalog Volume. The `ai_parse_document` function processes these files and returns a structured JSON output containing text, tables, figures, and layout metadata.
+2.  **Extract Structured Fields with `ai_extract` (v2)**: This function uses the parsed document and a declarative JSON schema (including types and descriptive field instructions) to extract key product specifications (e.g., manufacturer, model number, rated voltage). Prompt engineering is used here to steer the Large Language Model (LLM) toward specific values and terminology.
+3.  **Flatten and Type-Cast**: The JSON result from `ai_extract` is converted into a clean table with strongly typed columns and descriptive column comments, creating the final structured product catalog.
+
+**Quality Evaluation**
+The extraction quality is continuously measured using **MLflow 3 GenAI evaluation**, which employs both code-based scorers (checking completeness) and LLM-as-judge scorers (verifying language and validity).
+
+**Delivering Results to Business Users**
+The processed data is made accessible through complementary interfaces on **Databricks One**:
+
+  * **Genie Space**: Allows users to query the structured product catalog using natural language, which is translated into SQL.
+  * **Knowledge Assistant**: Indexes the raw PDF manuals to provide cited, document-grounded answers for open-ended questions (e.g., safety instructions or troubleshooting steps).
+  * **Supervisor Agent**: Ties the Genie Space and Knowledge Assistant together into a unified interface, which can be surfaced to the end user via a **Databricks App**.
+
+All those elements are set-up and deployed with this solution by following the below steps.
+
+Architecture
+
+![Architecture](docs/images/architecture.png)
 
 # ETL bundle deployment
 
 This guide covers deploying the **Databricks Asset Bundle** under [`databricks_etl/`](databricks_etl/) (Spark Declarative pipelines and jobs including a Supervisor Agent).
 
 **App deployment:** end-to-end deployment of the FastAPI / apx **app** bundle from Git is **coming soon**.
+
+
 
 ## 1. Install the Databricks CLI and configure a profile
 
