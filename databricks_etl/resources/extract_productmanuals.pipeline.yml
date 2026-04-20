@@ -10,7 +10,7 @@ resources:
 
       # Pipeline configuration: available as spark.conf <key> in Python (and ${key} in archived SQL)
       configuration:
-        table: ${var.table}
+        table_prefix: ${var.table_prefix}
         volume: ${var.volume}
 
       libraries:

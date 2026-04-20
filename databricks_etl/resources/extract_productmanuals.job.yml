@@ -17,8 +17,8 @@ resources:
           default: ${var.catalog}
         - name: schema
           default: ${var.schema}
-        - name: table
-          default: ${var.table}
+        - name: table_prefix
+          default: ${var.table_prefix}
         - name: volume
           default: ${var.volume}
 

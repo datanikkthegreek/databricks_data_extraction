@@ -3,7 +3,7 @@ from pyspark import pipelines as dp
 from pyspark.sql import functions as F
 
 # I/O variables
-table_prefix = spark.conf.get("table")
+table_prefix = spark.conf.get("table_prefix")
 input_table_path = f"{table_prefix}_productmanuals_parsed"
 input_column = "parsed"
 output_column = "ai_result"

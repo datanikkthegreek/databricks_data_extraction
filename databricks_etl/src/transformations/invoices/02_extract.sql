@@ -6,7 +6,7 @@
 SET prompt = 'I want to analyze private invoices';
 
 
-CREATE OR REFRESH STREAMING TABLE ${table}_invoices_extract
+CREATE OR REFRESH STREAMING TABLE ${table_prefix}_invoices_extract
 COMMENT 'Extracted invoice fields (invoice_date, invoice_sum, seller) via AI from parsed PDFs'
 AS
 SELECT
@@ -25,7 +25,7 @@ SELECT
           'instructions', '${prompt}'
         )
     ) AS ai_result
-FROM STREAM(${table}_invoices_parsed);
+FROM STREAM(${table_prefix}_invoices_parsed);
 
 
 -- =============================================================================
@@ -49,7 +49,7 @@ FROM STREAM(${table}_invoices_parsed);
 --
 -- Do not include any markdown, explanations, tables, or additional information.';
 --
--- CREATE OR REFRESH STREAMING TABLE ${table}_invoices_ai_query_extract
+-- CREATE OR REFRESH STREAMING TABLE ${table_prefix}_invoices_ai_query_extract
 -- COMMENT 'Extracted invoice fields (invoice_date, invoice_sum, seller) via AI from parsed PDFs'
 -- AS
 -- SELECT
@@ -61,4 +61,4 @@ FROM STREAM(${table}_invoices_parsed);
 --         request => CONCAT('${prompt}', '\n\n', document),
 --         responseFormat => 'STRUCT<result: STRUCT<invoice_date: STRING, invoice_sum: DOUBLE, seller: STRING>>'
 --     ) AS ai_result
--- FROM STREAM(${table}_invoices_parsed);
+-- FROM STREAM(${table_prefix}_invoices_parsed);

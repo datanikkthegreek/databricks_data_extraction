@@ -2,7 +2,7 @@ from pyspark import pipelines as dp
 import pyspark.sql.functions as F
 
 # I/O variables
-table_prefix = spark.conf.get("table")
+table_prefix = spark.conf.get("table_prefix")
 input_volume_path = f"{spark.conf.get('volume')}/productmanuals"
 
 @dp.table(

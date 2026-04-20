@@ -1,5 +1,5 @@
 -- Streaming table: Parsed product manuals (Spark declarative pipeline)
-CREATE OR REPLACE STREAMING TABLE ${table}_productmanuals_parsed
+CREATE OR REPLACE STREAMING TABLE ${table_prefix}_productmanuals_parsed
 COMMENT 'Table containing parsed product manual data from PDF files, including file metadata'
 AS
 SELECT

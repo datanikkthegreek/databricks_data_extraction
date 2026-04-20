@@ -15,8 +15,8 @@ variables:
   schema:
     description: The schema to use
     default: data_extraction
-  table:
-    description: Table name for generated data
+  table_prefix:
+    description: Prefix for generated Delta table names (e.g. app -> app_invoices_parsed)
     default: app
   volume:
     description: The volume to use for uploading files

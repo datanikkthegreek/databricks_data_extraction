@@ -4,7 +4,7 @@
 SET prompt = 'Extract product specifications from this power tool manual. Focus only on the English language sections. All extracted values (including product_name) must be in English. Look for technical data in specification tables, feature lists, and product descriptions throughout the entire document. If a specification is mentioned anywhere in the document (not just in tables), extract it. If multiple models are listed, extract the primary model.';
 
 
-CREATE OR REFRESH STREAMING TABLE ${table}_productmanuals_extract
+CREATE OR REFRESH STREAMING TABLE ${table_prefix}_productmanuals_extract
 COMMENT 'Extracted product specifications (manufacturer, model, voltage, torque, etc.) via AI from parsed product manual PDFs'
 AS
 SELECT
@@ -34,4 +34,4 @@ SELECT
           'instructions', '${prompt}'
         )
     ) AS ai_result
-FROM STREAM(${table}_productmanuals_parsed);
+FROM STREAM(${table_prefix}_productmanuals_parsed);

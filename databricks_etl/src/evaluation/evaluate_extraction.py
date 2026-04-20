@@ -34,7 +34,10 @@ mlflow.set_experiment("/Users/merve.karali@databricks.com/product_manuals_extrac
 
 CATALOG = "data_extraction"
 SCHEMA = "default"
-TABLE_PREFIX = "app"
+try:
+    TABLE_PREFIX = dbutils.widgets.get("table_prefix")
+except Exception:
+    TABLE_PREFIX = "app"
 
 df_processed = spark.table(f"{CATALOG}.{SCHEMA}.{TABLE_PREFIX}_productmanuals_processed")
 df_parsed = spark.table(f"{CATALOG}.{SCHEMA}.{TABLE_PREFIX}_productmanuals_parsed")

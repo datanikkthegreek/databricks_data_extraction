@@ -1,7 +1,7 @@
 -- Streaming table: Parsed documents (Spark declarative pipeline)
 
 
-CREATE OR REPLACE STREAMING TABLE ${table}_invoices_parsed
+CREATE OR REPLACE STREAMING TABLE ${table_prefix}_invoices_parsed
 COMMENT 'Table containing parsed exploration data from PDF files, including file metadata'
 AS
 SELECT

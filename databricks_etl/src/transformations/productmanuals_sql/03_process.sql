@@ -1,7 +1,7 @@
 -- Streaming table: processed product manual fields from AI extraction (Spark Declarative Pipeline)
--- Reads from ${table}_productmanuals_extract and flattens ai_result into typed columns.
+-- Reads from ${table_prefix}_productmanuals_extract and flattens ai_result into typed columns.
 
-CREATE OR REFRESH STREAMING TABLE ${table}_productmanuals_processed
+CREATE OR REFRESH STREAMING TABLE ${table_prefix}_productmanuals_processed
 (
   file_name STRING COMMENT 'Original PDF file name.',
   manufacturer STRING COMMENT 'Brand or manufacturer name.',
@@ -37,4 +37,4 @@ SELECT
     ai_result:response.weight_kg::DOUBLE AS weight_kg,
     ai_result:response.compatible_batteries::STRING AS compatible_batteries,
     ai_result:response.compatible_chargers::STRING AS compatible_chargers
-FROM STREAM(${table}_productmanuals_extract)
+FROM STREAM(${table_prefix}_productmanuals_extract)

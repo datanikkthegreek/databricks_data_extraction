@@ -1,7 +1,7 @@
 -- Streaming table: processed invoice fields from AI extraction (Spark Declarative Pipeline)
--- Reads from ${table}_invoices_extract and flattens ai_result with typed columns and comments.
+-- Reads from ${table_prefix}_invoices_extract and flattens ai_result with typed columns and comments.
 
-CREATE OR REFRESH STREAMING TABLE ${table}_invoices_processed
+CREATE OR REFRESH STREAMING TABLE ${table_prefix}_invoices_processed
 (
   file_name STRING COMMENT 'Original PDF file name.',
   invoice_date DATE COMMENT 'Date of the invoice (YYYY-MM-DD).',
@@ -15,4 +15,4 @@ SELECT
     ai_result:response.invoice_date::DATE AS invoice_date,
     ai_result:response.invoice_sum::DOUBLE AS invoice_sum,
     ai_result:response.seller::STRING AS seller
-FROM STREAM(${table}_invoices_extract)
+FROM STREAM(${table_prefix}_invoices_extract)
