@@ -123,6 +123,8 @@ databricks bundle run extract_productmanuals_job -p FEVM
 
 (Replace `FEVM` with your profile name.)
 
+You can also run the job with different settings and set the parameter create_agent to `false` if the knowledge assistant and supervisor should not be created. Default is `true`
+
 Important: The Knowledge Assistant will take at least 15 min to build up. To reduce costs we do not let the job run until the syncing of the Agent has been completed. You can check the status on the Agents tab.
 
 ## Additional information
