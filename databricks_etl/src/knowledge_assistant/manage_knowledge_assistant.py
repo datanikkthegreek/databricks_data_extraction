@@ -1,14 +1,10 @@
-"""Knowledge Assistant helpers via ``WorkspaceClient.knowledge_assistants`` (typed SDK API)."""
-from typing import TYPE_CHECKING
+"""Knowledge Assistant helpers via ``WorkspaceClient.knowledge_assistants`` (SDK API)."""
 
 from databricks.sdk.service.knowledgeassistants import FilesSpec, KnowledgeAssistant, KnowledgeSource
 
-if TYPE_CHECKING:
-    from databricks.sdk import WorkspaceClient
-
 
 def list_knowledge_assistants(
-    workspace_client: WorkspaceClient,
+    workspace_client,
     *,
     page_size: int | None = None,
     page_token: str | None = None,
@@ -28,7 +24,7 @@ def list_knowledge_assistants(
     return {"knowledge_assistants": assistants, "next_page_token": None}
 
 
-def get_knowledge_assistant_id_by_name(workspace_client: WorkspaceClient, name: str) -> str | None:
+def get_knowledge_assistant_id_by_name(workspace_client, name: str) -> str | None:
     """Return the ``id`` of the first Knowledge Assistant whose ``name`` equals ``name`` (stripped), else ``None``.
 
     Walks the SDK list iterator until a match or exhaustion.
@@ -40,7 +36,7 @@ def get_knowledge_assistant_id_by_name(workspace_client: WorkspaceClient, name: 
     return None
 
 
-def get_knowledge_assistant_id_by_display_name(workspace_client: WorkspaceClient, display_name: str) -> str | None:
+def get_knowledge_assistant_id_by_display_name(workspace_client, display_name: str) -> str | None:
     """Return the ``id`` of the first Knowledge Assistant whose ``display_name`` matches (stripped), else ``None``.
 
     Walks the SDK list iterator until a match or exhaustion.
@@ -53,7 +49,7 @@ def get_knowledge_assistant_id_by_display_name(workspace_client: WorkspaceClient
 
 
 def create_knowledge_assistant(
-    workspace_client: WorkspaceClient,
+    workspace_client,
     display_name: str,
     description: str,
     instructions: str | None = None,
@@ -68,7 +64,7 @@ def create_knowledge_assistant(
     return created.as_dict()
 
 
-def get_knowledge_assistant(workspace_client: WorkspaceClient, id: str):
+def get_knowledge_assistant(workspace_client, id: str):
     """Get a Knowledge Assistant by id. Returns the full response as a dict or raises."""
     name = f"knowledge-assistants/{id}"
     got = workspace_client.knowledge_assistants.get_knowledge_assistant(name=name)
@@ -76,7 +72,7 @@ def get_knowledge_assistant(workspace_client: WorkspaceClient, id: str):
 
 
 def create_knowledge_source_files(
-    workspace_client: WorkspaceClient,
+    workspace_client,
     assistant_id: str,
     display_name: str,
     description: str,
@@ -94,14 +90,14 @@ def create_knowledge_source_files(
     return created.as_dict()
 
 
-def get_knowledge_source(workspace_client: WorkspaceClient, assistant_id: str, source_id: str):
+def get_knowledge_source(workspace_client, assistant_id: str, source_id: str):
     """Get a Knowledge Source by assistant id and source id. Returns the full response as a dict or raises."""
     name = f"knowledge-assistants/{assistant_id}/knowledge-sources/{source_id}"
     got = workspace_client.knowledge_assistants.get_knowledge_source(name=name)
     return got.as_dict()
 
 
-def sync_knowledge_sources(workspace_client: WorkspaceClient, assistant_id: str):
+def sync_knowledge_sources(workspace_client, assistant_id: str):
     """Sync all non-index Knowledge Sources for a Knowledge Assistant. Returns ``{}`` (no response body from API)."""
     workspace_client.knowledge_assistants.sync_knowledge_sources(name=f"knowledge-assistants/{assistant_id}")
     return {}
