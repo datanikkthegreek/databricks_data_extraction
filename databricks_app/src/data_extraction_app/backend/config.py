@@ -1,10 +1,18 @@
-"""All configurable values. Override via env vars: DATA_EXTRACTION_HOST, DATA_EXTRACTION_TOKEN, DATA_EXTRACTION_WAREHOUSE_HTTP_PATH, DATA_EXTRACTION_VOLUME_PATH, DATA_EXTRACTION_PROCESSING_JOB_ID, DATA_EXTRACTION_APP_AI_QUERY_TABLE."""
+"""All configurable values.
+
+Workspace defaults (warehouse, volume, job, table, agent): edit ``app_settings.yaml`` at the
+app bundle root (same folder as ``pyproject.toml``). One key per line.
+
+Override any field via env vars with prefix ``DATA_EXTRACTION_`` (e.g. ``DATA_EXTRACTION_VOLUME_PATH``)
+or ``DATABRICKS_CLIENT_*`` / ``FEVM_TOKEN`` where documented below — env wins over YAML.
+"""
 
 import os
 from importlib import resources
 from pathlib import Path
-from typing import TYPE_CHECKING, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar
 
+import yaml
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -64,8 +72,51 @@ def get_access_token_diagnostic(request: "Request | None", config: "AppConfig | 
         "hint": hint,
     }
 
-# .env next to project root (parent of src)
-_env_file = Path(__file__).resolve().parent.parent.parent.parent / ".env"
+_bundle_root = Path(__file__).resolve().parent.parent.parent.parent
+_env_file = _bundle_root / ".env"
+_settings_yaml = _bundle_root / "app_settings.yaml"
+
+_BUILTIN_APP_DEFAULTS: dict[str, str] = {
+    "warehouse_http_path": "/sql/1.0/warehouses/4b9b953939869799",
+    "volume_path": "/Volumes/data_extraction/default/documents",
+    "processing_job_id": "170364782025692",
+    "app_ai_query_table": "data_extraction.data_extraction.app_productmanuals_processed",
+    "agent_endpoint": "mas-ce26527c-endpoint",
+}
+
+
+def _load_app_settings_yaml() -> dict[str, Any]:
+    if not _settings_yaml.is_file():
+        return {}
+    with _settings_yaml.open(encoding="utf-8") as f:
+        data = yaml.safe_load(f)
+    if not data or not isinstance(data, dict):
+        return {}
+    return data
+
+
+def _merged_bundle_defaults() -> dict[str, str]:
+    out = dict(_BUILTIN_APP_DEFAULTS)
+    raw = _load_app_settings_yaml()
+    if not raw:
+        return out
+
+    whp = raw.get("warehouse_http_path")
+    if whp is not None and str(whp).strip():
+        out["warehouse_http_path"] = str(whp).strip()
+    else:
+        wid = raw.get("warehouse_id")
+        if wid is not None and str(wid).strip():
+            out["warehouse_http_path"] = f"/sql/1.0/warehouses/{str(wid).strip()}"
+
+    for key in ("volume_path", "processing_job_id", "app_ai_query_table", "agent_endpoint"):
+        if key in raw and raw[key] is not None and str(raw[key]).strip() != "":
+            out[key] = str(raw[key]).strip()
+
+    return out
+
+
+_BUNDLE_DEFAULTS = _merged_bundle_defaults()
 
 
 class AppConfig(BaseSettings):
@@ -103,35 +154,30 @@ class AppConfig(BaseSettings):
 
     # SQL Warehouse
     warehouse_http_path: str = Field(
-        default="/sql/1.0/warehouses/4b9b953939869799",
+        default=_BUNDLE_DEFAULTS["warehouse_http_path"],
         description="SQL Warehouse HTTP path",
     )
 
     # Volume & jobs
     volume_path: str = Field(
-        default="/Volumes/data_extraction/default/documents",
+        default=_BUNDLE_DEFAULTS["volume_path"],
         description="Volume path for PDF storage",
     )
     processing_job_id: str = Field(
-        default="170364782025692",
+        default=_BUNDLE_DEFAULTS["processing_job_id"],
         description="Job ID for Execute processing",
     )
 
     # Tables
     app_ai_query_table: str = Field(
-        default="data_extraction.data_extraction.app_productmanuals_processed",
+        default=_BUNDLE_DEFAULTS["app_ai_query_table"],
         description="Full table name (catalog.schema.table) for AI query results",
     )
 
     # Agent chat
     agent_endpoint: str = Field(
-        default="mas-ce26527c-endpoint",
+        default=_BUNDLE_DEFAULTS["agent_endpoint"],
         description="Databricks agent endpoint name for chat",
-    )
-    # Supervisor Agent (multi-agent) endpoint created in Agents → Supervisor Agent
-    supervisor_agent_endpoint: str = Field(
-        default="",
-        description="Supervisor Agent endpoint name (e.g. supervisor-agent-extraction). Override via DATA_EXTRACTION_SUPERVISOR_AGENT_ENDPOINT.",
     )
 
     # token fallback: FEVM_TOKEN or DATA_EXTRACTION_* from env (see get_access_token)

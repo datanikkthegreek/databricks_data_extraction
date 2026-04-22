@@ -1,8 +1,7 @@
 # Databricks asset bundle for Data Extraction App
 # See https://docs.databricks.com/dev-tools/bundles/index.html for documentation.
 bundle:
-  name: data-extraction-app
-  uuid: 91b2c3d4-e5f6-47a8-b9c0-d1e2f3a4b506
+  name: data-extraction-app4
 
 artifacts:
   app:
@@ -10,14 +9,12 @@ artifacts:
 
 resources:
   apps:
-    data-extraction-app:
-      name: "data-extraction-app"
+    data-extraction-app4:
+      name: "data-extraction-app4"
       description: "Data Extraction App with PDF upload"
-      source_code_path: ${workspace.file_path}/.build
+      source_code_path: .
 
 targets:
   dev:
     mode: development
     default: true
-    # workspace:
-    #  host: https://e2-demo-field-eng.cloud.databricks.com

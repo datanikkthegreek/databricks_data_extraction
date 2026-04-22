@@ -8,10 +8,10 @@
 // You should NOT make any changes in this file as it will be overwritten.
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
-import { Route as rootRouteImport } from '../routes/__root'
-import { Route as SidebarRouteRouteImport } from '../routes/_sidebar/route'
-import { Route as IndexRouteImport } from '../routes/index'
-import { Route as SidebarProfileRouteImport } from '../routes/_sidebar/profile'
+import { Route as rootRouteImport } from './../routes/__root'
+import { Route as SidebarRouteRouteImport } from './../routes/_sidebar/route'
+import { Route as IndexRouteImport } from './../routes/index'
+import { Route as SidebarProfileRouteImport } from './../routes/_sidebar/profile'
 
 const SidebarRouteRoute = SidebarRouteRouteImport.update({
   id: '/_sidebar',
