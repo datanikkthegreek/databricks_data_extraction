@@ -26,5 +26,6 @@ def productmanuals_parsed():
             F.col("_metadata.file_name").alias("file_name"),
             F.col("_metadata.file_size").alias("file_size"),
             F.col("parsed"),
+            F.expr("parsed:document::string").alias("document"),
         )
     )

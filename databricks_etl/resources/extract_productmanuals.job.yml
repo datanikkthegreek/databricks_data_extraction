@@ -23,6 +23,8 @@ resources:
           default: ${var.volume}
         - name: create_agent
           default: "true"
+        - name: evaluation_experiment
+          default: ${var.evaluation_experiment}
 
       tasks:
         - task_key: check_create_agent
@@ -55,6 +57,18 @@ resources:
               warehouse_id: ${var.warehouse_id}
           environment_key: default
 
+        - task_key: evaluate_extraction
+          depends_on:
+            - task_key: Extraction
+          notebook_task:
+            notebook_path: ../src/evaluation/evaluate_extraction.ipynb
+            base_parameters:
+              catalog: ${var.catalog}
+              schema: ${var.schema}
+              table_prefix: ${var.table_prefix}
+              experiment: "{{job.parameters.evaluation_experiment}}"
+          environment_key: default
+
         - task_key: create_supervisor_agent
           depends_on:
             - task_key: check_create_agent
@@ -75,5 +89,6 @@ resources:
             environment_version: "5"
             dependencies:
               - databricks-sdk>=0.103
+              - mlflow[databricks]>=3.1.0
 
       performance_target: PERFORMANCE_OPTIMIZED

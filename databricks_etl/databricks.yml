@@ -23,6 +23,9 @@ variables:
   warehouse_id:
     description: SQL warehouse ID for Genie spaces (serverless SQL / Genie UI)
     default: "4615730c28d25332"
+  evaluation_experiment:
+    description: MLflow experiment path for product manual extraction quality evaluation
+    default: "/Shared/${var.table_prefix}_product_manuals_extraction_eval"
 
 targets:
   dev:
