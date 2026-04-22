@@ -123,6 +123,8 @@ databricks bundle run extract_productmanuals_job -p FEVM
 
 (Replace `FEVM` with your profile name.)
 
+Important: The Knowledge Assistant will take at least 15 min to build up. To reduce costs we do not let the job run until the syncing of the Agent has been completed. You can check the status on the Agents tab.
+
 ## Additional information
 
 ### ***Databricks App orchestrating the workflow is coming soon***
