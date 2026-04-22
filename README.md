@@ -26,13 +26,68 @@ Architecture
 
 ![Architecture](docs/images/architecture.png)
 
-# ETL bundle deployment
-
 This guide covers deploying the **Databricks Asset Bundle** under [`databricks_etl/`](databricks_etl/) (Spark Declarative pipelines and jobs including a Supervisor Agent).
 
 **App deployment:** end-to-end deployment of the FastAPI / apx **app** bundle from Git is **coming soon**.
 
+# Deployment from the Databricks Workspace UI
 
+If you want to deploy via CLI from locally check the next Chapter
+
+## 1. Clone the repository in a Git folder
+
+In Databricks, add a Git folder and clone:
+
+```text
+https://github.com/datanikkthegreek/databricks_data_extraction.git
+```
+
+**Bundle location in this repo:** the Declarative Automation Bundle (`databricks.yml`) lives under [`databricks_etl/`](databricks_etl/), not at the monorepo root. Databricks identifies a folder as a bundle when `databricks.yml` sits at the **root of that folder**—see [I have a bundle in a GitHub repository](https://docs.databricks.com/aws/en/dev-tools/bundles/workspace.html). After the clone appears in the workspace, **open the `databricks_etl` directory** as your bundle project (the directory that contains [`databricks_etl/databricks.yml`](databricks_etl/databricks.yml)). If your UI only attaches bundle tooling at the Git repo root, use the web terminal from step 1 and run bundle commands after `cd databricks_etl`, same as the CLI guide.
+
+## 2. Unity Catalog: catalog, schema, volume, and sample data
+
+1. In Databricks, create or choose a **catalog**, **schema**, and a **Unity Catalog volume** (managed or external) where ingestion files will live. See [What is Unity Catalog?](https://docs.databricks.com/en/data-governance/unity-catalog/index.html) and [Create and work with volumes](https://docs.databricks.com/en/volumes/index.html).
+
+2. Set the bundle `volume` variable (step 4) to the UC path prefix for that volume, in the form:  
+   `/Volumes/<catalog>/<schema>/<volume-name>/`  
+   (trailing slash is fine if it matches your `databricks.yml`.)
+
+3. **Upload sample files** so pipeline paths exist:
+   - **Product manuals pipeline**: upload the contents of the repo folder [`productmanuals/`](productmanuals/) into **`{volume}/productmanuals`** on the volume (the pipeline reads `${volume}/productmanuals`).
+   - **Invoices pipeline** (if you run the invoices job): place files under **`{volume}/invoices`** (see `01_parsed.sql` in the invoices transformation).
+
+## 3. Configure the bundle
+
+Edit [`databricks_etl/databricks.yml`](databricks_etl/databricks.yml) in the workspace (editor, Repos, or the bundle experience) and set **`variables`** for your workspace:
+
+| Variable | Purpose |
+|----------|---------|
+| `catalog` | Unity Catalog catalog for DLT |
+| `schema` | Schema for DLT |
+| `table_prefix` | Prefix for Delta table names and for **job/pipeline display names** in the workspace |
+| `volume` | UC volume path used by pipelines (see step 3) |
+| `warehouse_id` | SQL warehouse ID for Genie-related notebook tasks in the jobs |
+
+For editing and committing YAML from the UI, see [Author bundles in the workspace](https://docs.databricks.com/aws/en/dev-tools/bundles/workspace-author).
+
+## 4. Deploy the bundle
+
+Use the workspace **Deploy** flow for your bundle, choose the correct **target** (for example `dev` vs `prod`) as defined in [`databricks_etl/databricks.yml`](databricks_etl/databricks.yml), and deploy. Step-by-step help: [Tutorial: Create and deploy a bundle in the workspace](https://docs.databricks.com/aws/en/dev-tools/bundles/workspace-tutorial) and [Deploy bundles and run workflows from the workspace](https://docs.databricks.com/aws/en/dev-tools/bundles/workspace-deploy).
+
+You **cannot** deploy the same bundle from the workspace bundle editor into **another** Databricks workspace; for that, use CI/CD (for example GitHub Actions) with the CLI, as recommended in [Collaborate on bundles in the workspace](https://docs.databricks.com/aws/en/dev-tools/bundles/workspace.html).
+
+## 5. Run the Databricks jobs
+
+After a successful deploy, open **Workflows** → **Jobs** (or run workflows from the bundle UI as described in [Deploy bundles and run workflows from the workspace](https://docs.databricks.com/aws/en/dev-tools/bundles/workspace-deploy)). Job display names include `table_prefix`, for example:
+
+- `[dev <Your Name>]{table_prefix}_extract_invoices_job`
+- `[dev <Your Name>]{table_prefix}_extract_productmanuals_job`
+
+When starting a run from the UI, you can set the job parameter **`create_agent`** to `false` if the Knowledge Assistant and Supervisor notebook tasks should be skipped; the default is `true`.
+
+Important: The Knowledge Assistant will take at least 15 min to build up. To reduce costs we do not let the job run until the syncing of the Agent has been completed. You can check the status on the Agents tab.
+
+# Local Deployment via CLI
 
 ## 1. Install the Databricks CLI and configure a profile
 
