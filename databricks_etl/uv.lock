@@ -583,6 +583,7 @@ version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "databricks-dlt" },
+    { name = "databricks-sdk" },
     { name = "mlflow" },
 ]
 
@@ -596,6 +597,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "databricks-dlt" },
+    { name = "databricks-sdk", specifier = ">=0.95" },
     { name = "mlflow", specifier = ">=2.9.0" },
 ]
 
