@@ -5,6 +5,7 @@ description = "DLT pipelines and notebooks for data extraction"
 requires-python = ">=3.11"
 dependencies = [
     "databricks-dlt",
+    "databricks-sdk>=0.103",
     "mlflow>=2.9.0",
 ]
 

@@ -63,6 +63,8 @@ resources:
       environments:
         - environment_key: default
           spec:
-            environment_version: "4"
+            environment_version: "5"
+            dependencies:
+              - databricks-sdk>=0.103
 
       performance_target: PERFORMANCE_OPTIMIZED
