@@ -1,3 +1,4 @@
+import os
 from typing import Annotated
 
 from databricks.sdk import WorkspaceClient
@@ -86,6 +87,26 @@ def get_volume_obo_ws(config: ConfigDep, request: Request) -> WorkspaceClient:
         token=use_token,
         auth_type="pat",
     )
+
+
+def get_job_workspace_client(config: ConfigDep, request: Request) -> WorkspaceClient:
+    """
+    Workspace client for ``/api/jobs/*``.
+
+    Databricks Apps ``user_api_scopes`` does not accept the string ``jobs`` (API returns "not a valid
+    scope"), so OBO user tokens are often missing the Jobs OAuth scope. On Apps compute, use the app
+    service principal (``DATABRICKS_CLIENT_ID`` / ``DATABRICKS_CLIENT_SECRET``) so ``run_now`` / ``get_run``
+    work with the bundle ``job`` resource (e.g. ``CAN_MANAGE_RUN``). Locally, fall back to the same token
+    as volume routes if app OAuth env vars are absent.
+    """
+    client_id = (os.getenv("DATABRICKS_CLIENT_ID") or "").strip()
+    client_secret = (os.getenv("DATABRICKS_CLIENT_SECRET") or "").strip()
+    if client_id and client_secret:
+        host = (config.host or "").strip() or None
+        if host:
+            return WorkspaceClient(host=host, client_id=client_id, client_secret=client_secret)
+        return WorkspaceClient(client_id=client_id, client_secret=client_secret)
+    return get_volume_obo_ws(config, request)
 
 
 def get_volume_token(config: ConfigDep, request: Request) -> str:

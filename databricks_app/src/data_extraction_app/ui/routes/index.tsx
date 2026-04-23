@@ -503,20 +503,7 @@ function UploadPage() {
       const { data } = await chat({ messages: messagesForApi });
       setChatMessages((prev) => [...prev, { role: "assistant", content: data.message.content }]);
     } catch (err) {
-      let message = "Agent unavailable";
-      if (err instanceof ApiError && err.body && typeof err.body === "object" && "detail" in err.body) {
-        const d = (err.body as { detail?: string | { message?: string; hint?: string; fix_databricks?: string; fix_local?: string } }).detail;
-        if (typeof d === "string") {
-          message = d;
-        } else if (d && typeof d === "object" && "message" in d) {
-          const parts = [d.message, d.hint, d.fix_databricks, d.fix_local].filter(Boolean);
-          message = parts.join(" ");
-        } else {
-          message = JSON.stringify(d);
-        }
-      } else if (err instanceof Error) {
-        message = err.message;
-      }
+      const message = err instanceof Error ? err.message : "Agent unavailable";
       setChatError(message);
     } finally {
       setChatLoading(false);
@@ -742,13 +729,21 @@ function UploadPage() {
               )}
 
               {triggerJobMutation.isError && (
-                <div className="flex items-center gap-2 text-destructive text-sm">
-                  <AlertCircle className="h-4 w-4 flex-shrink-0" />
-                  <span>
-                    {triggerJobMutation.error instanceof Error
-                      ? triggerJobMutation.error.message
-                      : "Failed to start job"}
-                  </span>
+                <div className="flex gap-2 rounded-md border border-destructive/30 bg-destructive/5 p-3 text-destructive text-sm">
+                  <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                  <div className="min-w-0 space-y-1">
+                    <p className="font-medium">Could not start processing job</p>
+                    <p className="whitespace-pre-wrap break-words text-muted-foreground">
+                      {triggerJobMutation.error instanceof ApiError
+                        ? triggerJobMutation.error.message
+                        : triggerJobMutation.error instanceof Error
+                          ? triggerJobMutation.error.message
+                          : "Failed to start job"}
+                    </p>
+                    {triggerJobMutation.error instanceof ApiError && (
+                      <p className="text-xs text-muted-foreground">HTTP {triggerJobMutation.error.status}</p>
+                    )}
+                  </div>
                 </div>
               )}
             </CardContent>

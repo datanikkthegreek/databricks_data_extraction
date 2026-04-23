@@ -11,7 +11,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 
 from .._metadata import api_prefix
 from .config import AppConfig, get_access_token_diagnostic
-from .dependencies import ConfigDep, get_obo_ws, get_volume_obo_ws, get_volume_token
+from .dependencies import ConfigDep, get_job_workspace_client, get_obo_ws, get_volume_obo_ws, get_volume_token
 from .logger import logger
 from .models import (
     AppAiQueryOut,
@@ -45,11 +45,28 @@ def _as_int_ms_epoch(v) -> int | None:
         return None
 
 
+def _databricks_error_code_upper(e: DatabricksError) -> str:
+    """Normalize ``DatabricksError.error_code`` (str or int from the platform) for comparisons."""
+    raw = getattr(e, "error_code", None)
+    if raw is None:
+        return ""
+    if isinstance(raw, str):
+        return raw.upper()
+    return str(raw).upper()
+
+
 def _http_status_for_databricks_error(e: DatabricksError) -> int | None:
-    """Map common Jobs API failures to HTTP status codes."""
-    code = (e.error_code or "").upper()
+    """Map common Databricks API failures to HTTP status codes."""
+    code = _databricks_error_code_upper(e)
     msg = (str(e) or "").lower()
-    if "PERMISSION" in code or "PERMISSION_DENIED" in code or "403" in msg or "forbidden" in msg:
+    if (
+        "PERMISSION" in code
+        or "PERMISSION_DENIED" in code
+        or code == "403"
+        or "403" in msg
+        or "forbidden" in msg
+        or "required scopes" in msg
+    ):
         return 403
     if (
         "NOT_FOUND" in code
@@ -157,7 +174,7 @@ def upload_files(
 
         try:
             # Decode base64 content
-            logger.info(f"[UPLOAD] Decoding base64 content...")
+            logger.info("[UPLOAD] Decoding base64 content...")
             content = base64.b64decode(file.content_base64)
             logger.info(f"[UPLOAD] Decoded content size: {len(content)} bytes")
             
@@ -202,13 +219,29 @@ def upload_files(
 @api.post("/jobs/run", response_model=JobRunTriggerOut, operation_id="triggerJobRun")
 def trigger_job_run(
     config: ConfigDep,
-    ws: Annotated[WorkspaceClient, Depends(get_volume_obo_ws)],
+    ws: Annotated[WorkspaceClient, Depends(get_job_workspace_client)],
 ):
-    """Trigger the configured processing job (run now). Returns run_id for polling."""
+    """Trigger the configured processing job (run now). Returns run_id for polling.
+
+    Uses the app service principal on Databricks Apps (see ``get_job_workspace_client``): ``jobs`` is not
+    a valid ``user_api_scopes`` entry in the bundle, so OBO tokens typically lack the Jobs OAuth scope.
+    """
+    raw_job = (config.processing_job_id or "").strip()
+    if not raw_job:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "processing_job_id is not set. Configure DATA_EXTRACTION_PROCESSING_JOB_ID "
+                "(bundle app config.env / workspace app settings) to the numeric Databricks job ID."
+            ),
+        )
     try:
-        job_id = int(config.processing_job_id)
+        job_id = int(raw_job)
     except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid processing_job_id in config")
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid processing_job_id in config (expected integer job id): {raw_job!r}",
+        )
     try:
         waiter = ws.jobs.run_now(job_id=job_id)
         resp = waiter.response
@@ -231,16 +264,27 @@ def trigger_job_run(
         logger.error(traceback.format_exc())
         mapped = _http_status_for_databricks_error(e)
         if mapped is not None:
+            err_lower = str(e).lower()
+            if "required scopes" in err_lower and "jobs" in err_lower:
+                job_hint = (
+                    "The token used for Jobs API calls is missing the 'jobs' OAuth scope. "
+                    "On Databricks Apps, /api/jobs/* should use the app service principal "
+                    "(DATABRICKS_CLIENT_ID / DATABRICKS_CLIENT_SECRET); the bundle cannot declare `jobs` "
+                    "under user_api_scopes (invalid scope id). "
+                    "Locally, set those env vars or use a PAT with Jobs scope for FEVM_TOKEN / DATA_EXTRACTION_TOKEN."
+                )
+            else:
+                job_hint = (
+                    "Grant the signed-in user (OBO token) CAN_MANAGE_RUN or CAN_MANAGE on this job, "
+                    "or ensure their token can run the job. "
+                    "Ensure processing_job_id exists in the same workspace as config.host."
+                )
             raise HTTPException(
                 status_code=mapped,
                 detail={
                     "message": str(e),
                     "error_code": e.error_code,
-                    "hint": (
-                        "Grant the signed-in user (OBO token) CAN_MANAGE_RUN or CAN_MANAGE on this job, "
-                        "or ensure their token can run the job. "
-                        "Ensure processing_job_id exists in the same workspace as config.host."
-                    ),
+                    "hint": job_hint,
                 },
             ) from e
         raise HTTPException(status_code=502, detail=f"Failed to trigger job: {e!s}") from e
@@ -253,9 +297,9 @@ def trigger_job_run(
 @api.get("/jobs/runs/{run_id}", response_model=JobRunOut, operation_id="getJobRun")
 def get_job_run(
     run_id: int,
-    ws: Annotated[WorkspaceClient, Depends(get_volume_obo_ws)],
+    ws: Annotated[WorkspaceClient, Depends(get_job_workspace_client)],
 ):
-    """Get current status and timing of a job run."""
+    """Get current status and timing of a job run (same auth as ``POST /jobs/run``)."""
     try:
         run = ws.jobs.get_run(run_id=run_id)
     except DatabricksError as e:
