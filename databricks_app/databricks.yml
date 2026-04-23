@@ -48,8 +48,11 @@ resources:
       name: "data-extraction-app7"
       description: "Data Extraction App with PDF upload"
       source_code_path: ${workspace.file_path}/.build
-      # Grant the app's service principal access to the UC volume used for uploads (see app_settings volume_path).
-      # If uploads still fail with invalid_client, fix the app's OAuth client secret / app registration (M2M), not only UC.
+      # M2M uploads use the app's service principal (DATABRICKS_CLIENT_*). Catalog-wide ALL PRIVILEGES does not
+      # always replace an explicit WRITE_VOLUME on this volume; keep this binding and in SQL e.g.:
+      #   GRANT WRITE_VOLUME ON VOLUME `catalog`.`schema`.`documents` TO `<app_service_principal>`;
+      # For external volumes, also grant the SP on the external location / storage credential as required.
+      # If auth fails, ensure AppConfig uses DATABRICKS_HOST (set on Apps) — wrong host breaks M2M + Files API.
       resources:
         - name: documents_volume
           uc_securable:

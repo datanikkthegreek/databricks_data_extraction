@@ -131,7 +131,7 @@ class AppConfig(BaseSettings):
 
     # Databricks
     host: str = Field(
-        default="https://e2-demo-field-eng.cloud.databricks.com",
+        default="https://adb-7405607030687545.5.azuredatabricks.net",
         description="Databricks workspace URL",
     )
     # OAuth M2M: when both set, used for all workspace/auth (no user token required)
