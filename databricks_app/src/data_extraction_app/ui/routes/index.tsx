@@ -409,22 +409,13 @@ function UploadPage() {
         const { data } = await getJobRun({ run_id: runId });
         setRunStatus(data);
         const terminal = isJobRunTerminal(data);
-        // #region agent log
-        fetch("http://127.0.0.1:7243/ingest/f4c9d870-a267-43c3-9ac7-83f9fa3251ec",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({hypothesisId:"B,E",location:"index.tsx:poll",message:"poll response",data:{life_cycle_state:data.life_cycle_state,result_state:data.result_state,isTerminal:terminal,run_id:runId},timestamp:Date.now()})}).catch(()=>{});
-        // #endregion
         if (terminal) {
           if (pollIntervalRef.current) {
             clearInterval(pollIntervalRef.current);
             pollIntervalRef.current = null;
           }
-          // #region agent log
-          fetch("http://127.0.0.1:7243/ingest/f4c9d870-a267-43c3-9ac7-83f9fa3251ec",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({hypothesisId:"A",location:"index.tsx:clearInterval",message:"clearing interval terminal",data:{run_id:runId},timestamp:Date.now()})}).catch(()=>{});
-          // #endregion
         }
       } catch (err) {
-        // #region agent log
-        fetch("http://127.0.0.1:7243/ingest/f4c9d870-a267-43c3-9ac7-83f9fa3251ec",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({hypothesisId:"B",location:"index.tsx:poll catch",message:"poll error",data:{err:String(err),run_id:runId},timestamp:Date.now()})}).catch(()=>{});
-        // #endregion
         // keep polling on transient errors
       }
     };

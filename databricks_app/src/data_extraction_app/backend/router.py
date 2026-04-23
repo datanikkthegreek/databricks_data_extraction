@@ -5,6 +5,7 @@ from datetime import datetime
 from typing import Annotated
 
 from databricks.sdk import WorkspaceClient
+from databricks.sdk.errors import DatabricksError
 from databricks.sdk.service.iam import User as UserOut
 from fastapi import APIRouter, Depends, HTTPException, Request
 
@@ -26,6 +27,38 @@ from .models import (
 )
 
 api = APIRouter(prefix=api_prefix)
+
+
+def _as_int_ms_epoch(v) -> int | None:
+    """Coerce SDK run timestamps to int ms for JSON / Pydantic (avoids response validation 500s)."""
+    if v is None:
+        return None
+    if isinstance(v, bool):
+        return int(v)
+    if isinstance(v, int):
+        return v
+    if isinstance(v, float):
+        return int(v)
+    try:
+        return int(v)
+    except (TypeError, ValueError):
+        return None
+
+
+def _http_status_for_databricks_error(e: DatabricksError) -> int | None:
+    """Map common Jobs API failures to HTTP status codes."""
+    code = (e.error_code or "").upper()
+    msg = (str(e) or "").lower()
+    if "PERMISSION" in code or "PERMISSION_DENIED" in code or "403" in msg or "forbidden" in msg:
+        return 403
+    if (
+        "NOT_FOUND" in code
+        or "DOES_NOT_EXIST" in code
+        or "RESOURCE_DOES_NOT_EXIST" in code
+        or ("INVALID_PARAMETER" in code and "job" in msg)
+    ):
+        return 404
+    return None
 
 
 class _BytesIOWithLen(io.BytesIO):
@@ -178,9 +211,39 @@ def trigger_job_run(
         raise HTTPException(status_code=400, detail="Invalid processing_job_id in config")
     try:
         waiter = ws.jobs.run_now(job_id=job_id)
-        run_id = waiter.response.run_id
+        resp = waiter.response
+        raw_run_id = getattr(resp, "run_id", None) if resp is not None else None
+        if raw_run_id is None:
+            raise HTTPException(
+                status_code=502,
+                detail=(
+                    "Job run was submitted but the workspace returned no run_id. "
+                    "Check processing_job_id, Jobs API access, and that config.host matches the workspace."
+                ),
+            )
+        run_id = int(raw_run_id)
         logger.info(f"[JOB] Triggered job_id={job_id}, run_id={run_id}")
         return JobRunTriggerOut(run_id=run_id, job_id=config.processing_job_id)
+    except HTTPException:
+        raise
+    except DatabricksError as e:
+        logger.error(f"[JOB] Error triggering job: {type(e).__name__}: {e}")
+        logger.error(traceback.format_exc())
+        mapped = _http_status_for_databricks_error(e)
+        if mapped is not None:
+            raise HTTPException(
+                status_code=mapped,
+                detail={
+                    "message": str(e),
+                    "error_code": e.error_code,
+                    "hint": (
+                        "Grant the app identity CAN_MANAGE_RUN or CAN_MANAGE on this job, "
+                        "or use a token with permission to run the job. "
+                        "Ensure processing_job_id exists in the same workspace as config.host."
+                    ),
+                },
+            ) from e
+        raise HTTPException(status_code=502, detail=f"Failed to trigger job: {e!s}") from e
     except Exception as e:
         logger.error(f"[JOB] Error triggering job: {type(e).__name__}: {e}")
         logger.error(traceback.format_exc())
@@ -195,6 +258,11 @@ def get_job_run(
     """Get current status and timing of a job run."""
     try:
         run = ws.jobs.get_run(run_id=run_id)
+    except DatabricksError as e:
+        logger.error(f"[JOB] Error getting run {run_id}: {type(e).__name__}: {e}")
+        mapped = _http_status_for_databricks_error(e)
+        status = mapped if mapped is not None else 502
+        raise HTTPException(status_code=status, detail=str(e)) from e
     except Exception as e:
         logger.error(f"[JOB] Error getting run {run_id}: {type(e).__name__}: {e}")
         raise HTTPException(status_code=404, detail=f"Run not found or error: {e!s}") from e
@@ -219,22 +287,20 @@ def get_job_run(
     life_cycle_state_str = _enum_value_name(life_cycle_state) or "UNKNOWN"
     result_state_str = _enum_value_name(result_state)
 
-    # #region agent log
-    try:
-        import json
-        with open("/Users/nikolaos.servos/Documents/databricks/.cursor/debug.log", "a") as f:
-            f.write(json.dumps({"hypothesisId":"A,C","location":"router.get_job_run","message":"get_run raw state","data":{"run_id":run_id,"life_cycle_state":life_cycle_state_str,"result_state":result_state_str,"has_tasks":bool(getattr(run,"tasks",None)),"task_count":len(getattr(run,"tasks") or [])},"timestamp":__import__("time").time()*1000}) + "\n")
-    except Exception: pass
-    # #endregion
+    raw_rid = getattr(run, "run_id", None)
+    effective_run_id = int(raw_rid) if raw_rid is not None else run_id
+
+    st = _as_int_ms_epoch(start_time)
+    et = _as_int_ms_epoch(end_time)
     execution_duration_ms = None
-    if start_time and end_time and end_time > 0:
-        execution_duration_ms = end_time - start_time
+    if st is not None and et is not None and et > 0:
+        execution_duration_ms = et - st
     return JobRunOut(
-        run_id=run.run_id,
+        run_id=effective_run_id,
         life_cycle_state=life_cycle_state_str,
         result_state=result_state_str,
-        start_time=start_time,
-        end_time=end_time if (end_time and end_time > 0) else None,
+        start_time=st,
+        end_time=et if (et is not None and et > 0) else None,
         execution_duration_ms=execution_duration_ms,
     )
 
