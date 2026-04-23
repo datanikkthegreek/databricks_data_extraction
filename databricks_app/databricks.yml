@@ -1,18 +1,24 @@
 # Databricks asset bundle for Data Extraction App
 # See https://docs.databricks.com/dev-tools/bundles/index.html for documentation.
 bundle:
-  name: data-extraction-app4
+  name: data-extraction-app5
 
 artifacts:
   app:
     build: uv run apx build
 
+# APX writes `.build/.gitignore` with `*` so `git check-ignore` skips the whole tree; bundle sync
+# respects those rules unless we explicitly include the build output (see libs/git in databricks/cli).
+sync:
+  include:
+    - ".build/**"
+
 resources:
   apps:
-    data-extraction-app4:
-      name: "data-extraction-app4"
+    data-extraction-app5:
+      name: "data-extraction-app5"
       description: "Data Extraction App with PDF upload"
-      source_code_path: .
+      source_code_path: ./.build
 
 targets:
   dev:
