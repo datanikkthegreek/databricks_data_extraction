@@ -22,6 +22,15 @@ variables:
   documents_volume_uc_name:
     description: UC full name of the documents volume for app uploads (WRITE_VOLUME for the app's service principal)
     default: nikks_fevm_workspace_7405607030687545.test1.documents
+  sql_warehouse_id:
+    description: SQL warehouse ID for app query access (same as app_settings warehouse_id)
+    default: "4615730c28d25332"
+  agent_serving_endpoint_name:
+    description: Model serving / agent endpoint name (same as app_settings agent_endpoint)
+    default: "mas-7dfd5937-endpoint"
+  processed_table_uc_name:
+    description: UC full name of the processed manuals table for AI/SQL queries (same as app_settings app_ai_query_table)
+    default: nikks_fevm_workspace_7405607030687545.test1.extract_7_productmanuals_processed
 
 artifacts:
   app:
@@ -47,6 +56,19 @@ resources:
             securable_type: VOLUME
             securable_full_name: ${var.documents_volume_uc_name}
             permission: WRITE_VOLUME
+        - name: app_sql_warehouse
+          sql_warehouse:
+            id: ${var.sql_warehouse_id}
+            permission: CAN_USE
+        - name: app_agent_endpoint
+          serving_endpoint:
+            name: ${var.agent_serving_endpoint_name}
+            permission: CAN_QUERY
+        - name: processed_table
+          uc_securable:
+            securable_type: TABLE
+            securable_full_name: ${var.processed_table_uc_name}
+            permission: SELECT
 
 targets:
   dev:
