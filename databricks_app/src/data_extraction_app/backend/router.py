@@ -124,7 +124,7 @@ def list_files(
                 detail={
                     "message": "The token does not have the 'files' scope.",
                     "hint": "The token must have the Databricks 'files' scope to list/upload files.",
-                    "fix": "In Databricks: grant the app's OAuth client or the user token the 'files' scope. For PATs: create a token with 'Files' permission in User Settings → Developer → Access tokens.",
+                    "fix": "Ensure the signed-in user's token (Apps) or PAT (local) includes the Databricks 'files' scope. For PATs: User Settings → Developer → Access tokens with Files enabled.",
                 },
             ) from e
         raise HTTPException(status_code=502, detail=f"Failed to list files: {e!s}") from e
@@ -187,7 +187,7 @@ def upload_files(
                     detail={
                         "message": f"Upload failed for {file.name}: the token does not have the 'files' scope.",
                         "hint": "The token (from x-forwarded-access-token or environment) must have the Databricks 'files' scope to use the Files API.",
-                        "fix": "In Databricks: ensure the app's OAuth client or the user's token is granted the 'files' scope. For PATs: create a token with 'Files' permission in User Settings → Developer → Access tokens.",
+                        "fix": "Ensure the signed-in user's token (Apps) or PAT (local) includes the 'files' scope. For PATs: User Settings → Developer → Access tokens with Files enabled.",
                     },
                 ) from e
             raise HTTPException(
@@ -237,8 +237,8 @@ def trigger_job_run(
                     "message": str(e),
                     "error_code": e.error_code,
                     "hint": (
-                        "Grant the app identity CAN_MANAGE_RUN or CAN_MANAGE on this job, "
-                        "or use a token with permission to run the job. "
+                        "Grant the signed-in user (OBO token) CAN_MANAGE_RUN or CAN_MANAGE on this job, "
+                        "or ensure their token can run the job. "
                         "Ensure processing_job_id exists in the same workspace as config.host."
                     ),
                 },

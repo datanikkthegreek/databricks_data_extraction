@@ -14,23 +14,32 @@
 #   Important: the middle folder must match this file's `bundle.name` (do not reuse an old .../app5/... path).
 # See: https://docs.databricks.com/aws/en/dev-tools/bundles/apps-tutorial
 bundle:
-  name: data-extraction-app7
+  name: data-extraction-app8
 
-# Unity Catalog volume backing PDF uploads (catalog.schema.volume). Must match the volume in
-# app_settings.yaml `volume_path` (/Volumes/<catalog>/<schema>/<volume>/).
+# Declare variables before `include:` so `${var.*}` inside included YAML resolves during bundle processing.
 variables:
   documents_volume_uc_name:
     description: UC full name of the documents volume for app uploads (WRITE_VOLUME for the app's service principal)
     default: nikks_fevm_workspace_7405607030687545.test1.documents
   sql_warehouse_id:
-    description: SQL warehouse ID for app query access (same as app_settings warehouse_id)
+    description: SQL warehouse ID for app query access
     default: "4615730c28d25332"
   agent_serving_endpoint_name:
-    description: Model serving / agent endpoint name (same as app_settings agent_endpoint)
+    description: Model serving / agent endpoint name
     default: "mas-7dfd5937-endpoint"
   processed_table_uc_name:
-    description: UC full name of the processed manuals table for AI/SQL queries (same as app_settings app_ai_query_table)
+    description: UC full name of the processed manuals table for AI/SQL queries
     default: nikks_fevm_workspace_7405607030687545.test1.extract_7_productmanuals_processed
+  processing_job_id:
+    description: Job ID for PDF processing (run now)
+    default: "723284732123840"
+  databricks_host:
+    description: Workspace URL (DATABRICKS_HOST); override per target if needed
+    default: "https://adb-7405607030687545.5.azuredatabricks.net"
+
+# App definition + config.env (${var.*} expanded at deploy). Same app key must not appear twice in the bundle.
+include:
+  - resources/bundle_app.yml
 
 artifacts:
   app:
@@ -41,37 +50,6 @@ artifacts:
 sync:
   include:
     - ".build/**"
-
-resources:
-  apps:
-    data-extraction-app7:
-      name: "data-extraction-app7"
-      description: "Data Extraction App with PDF upload"
-      source_code_path: ${workspace.file_path}/.build
-      # M2M uploads use the app's service principal (DATABRICKS_CLIENT_*). Catalog-wide ALL PRIVILEGES does not
-      # always replace an explicit WRITE_VOLUME on this volume; keep this binding and in SQL e.g.:
-      #   GRANT WRITE_VOLUME ON VOLUME `catalog`.`schema`.`documents` TO `<app_service_principal>`;
-      # For external volumes, also grant the SP on the external location / storage credential as required.
-      # If auth fails, ensure AppConfig uses DATABRICKS_HOST (set on Apps) — wrong host breaks M2M + Files API.
-      resources:
-        - name: documents_volume
-          uc_securable:
-            securable_type: VOLUME
-            securable_full_name: ${var.documents_volume_uc_name}
-            permission: WRITE_VOLUME
-        - name: app_sql_warehouse
-          sql_warehouse:
-            id: ${var.sql_warehouse_id}
-            permission: CAN_USE
-        - name: app_agent_endpoint
-          serving_endpoint:
-            name: ${var.agent_serving_endpoint_name}
-            permission: CAN_QUERY
-        - name: processed_table
-          uc_securable:
-            securable_type: TABLE
-            securable_full_name: ${var.processed_table_uc_name}
-            permission: SELECT
 
 targets:
   dev:

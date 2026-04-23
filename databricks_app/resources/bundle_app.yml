@@ -1,0 +1,50 @@
+# Databricks app resource: ${var.*} below is substituted when you run `databricks bundle deploy` (not at Python runtime).
+# value_from references resource names in the same `resources` list. This becomes the app’s config.env (app.yaml on compute).
+# `databricks.yml` defines `variables` *before* this `include` so interpolation works.
+# Fallback literals for local / artifact-only runs: see repo-root `app.yml` (must match `variables` defaults).
+resources:
+  apps:
+    data-extraction-app8:
+      name: "data-extraction-app8"
+      description: "Data Extraction App with PDF upload"
+      source_code_path: ${workspace.file_path}/.build
+      # OBO (user authorization): downscopes x-forwarded-access-token. Platform also adds iam.* defaults.
+      # Ref: https://docs.databricks.com/aws/en/dev-tools/databricks-apps/auth#scope-based-security-and-privilege-escalation
+      # Requires workspace admin enablement of user authorization (preview); restart app after scope changes.
+      user_api_scopes:
+        - sql
+        - files.files
+        - serving.serving-endpoints
+      config:
+        env:
+          - name: DATABRICKS_HOST
+            value: "${var.databricks_host}"
+          - name: DATA_EXTRACTION_VOLUME_PATH
+            value_from: documents_volume
+          - name: DATA_EXTRACTION_WAREHOUSE_HTTP_PATH
+            value: "/sql/1.0/warehouses/${var.sql_warehouse_id}"
+          - name: DATA_EXTRACTION_PROCESSING_JOB_ID
+            value: "${var.processing_job_id}"
+          - name: DATA_EXTRACTION_APP_AI_QUERY_TABLE
+            value_from: processed_table
+          - name: DATA_EXTRACTION_AGENT_ENDPOINT
+            value_from: app_agent_endpoint
+      resources:
+        - name: documents_volume
+          uc_securable:
+            securable_type: VOLUME
+            securable_full_name: ${var.documents_volume_uc_name}
+            permission: WRITE_VOLUME
+        - name: app_sql_warehouse
+          sql_warehouse:
+            id: ${var.sql_warehouse_id}
+            permission: CAN_USE
+        - name: app_agent_endpoint
+          serving_endpoint:
+            name: ${var.agent_serving_endpoint_name}
+            permission: CAN_QUERY
+        - name: processed_table
+          uc_securable:
+            securable_type: TABLE
+            securable_full_name: ${var.processed_table_uc_name}
+            permission: SELECT

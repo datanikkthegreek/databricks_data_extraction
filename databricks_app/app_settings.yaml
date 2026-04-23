@@ -1,8 +1,0 @@
-# Workspace defaults for the Data Extraction app (bundle root, next to pyproject.toml).
-# Override per field with env vars DATA_EXTRACTION_* (see backend/config.py) — env wins.
-
-warehouse_id: "4615730c28d25332"
-volume_path: "/Volumes/nikks_fevm_workspace_7405607030687545/test1/documents/"
-processing_job_id: "723284732123840"
-app_ai_query_table: "nikks_fevm_workspace_7405607030687545.test1.extract_7_productmanuals_processed"
-agent_endpoint: "mas-7dfd5937-endpoint"

@@ -1,20 +1,22 @@
 """All configurable values.
 
-Workspace defaults (warehouse, volume, job, table, agent): edit ``app_settings.yaml`` at the
-app bundle root (same folder as ``pyproject.toml``). One key per line.
+Names match ``resources/bundle_app.yml`` ``config.env`` (after ``databricks bundle deploy``) and/or
+``.build/app.yml`` ``env`` (from repo ``app.yml`` via ``apx build``) — this module reads them with
+:func:`os.getenv`. Declare ``variables`` in ``databricks.yml`` *before* ``include:`` so ``${var.*}`` in
+the bundle app YAML resolves.
 
-Override any field via env vars with prefix ``DATA_EXTRACTION_`` (e.g. ``DATA_EXTRACTION_VOLUME_PATH``)
-or ``DATABRICKS_CLIENT_*`` / ``FEVM_TOKEN`` where documented below — env wins over YAML.
+For local runs, use ``databricks_app/.env`` (same keys) or export variables in the shell.
 """
+
+from __future__ import annotations
 
 import os
 from importlib import resources
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, ClassVar
+from typing import TYPE_CHECKING, ClassVar
 
-import yaml
-from pydantic import Field
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from dotenv import load_dotenv
+from pydantic import BaseModel, ConfigDict, Field
 
 from .._metadata import app_name, app_slug
 
@@ -22,23 +24,44 @@ if TYPE_CHECKING:
     from fastapi import Request
 
 # Same as Flask: user_token = request.headers.get('x-forwarded-access-token')
-# In FastAPI you inject Request and use request.headers.get(...) the same way.
 FORWARDED_ACCESS_TOKEN_HEADER = "x-forwarded-access-token"
+
+# Env keys set in resources/bundle_app.yml (keep in sync when adding vars there).
+ENV_DATABRICKS_HOST = "DATABRICKS_HOST"
+ENV_DATA_EXTRACTION_HOST = "DATA_EXTRACTION_HOST"
+ENV_FEVM_TOKEN = "FEVM_TOKEN"
+ENV_DATA_EXTRACTION_TOKEN = "DATA_EXTRACTION_TOKEN"
+ENV_WAREHOUSE_HTTP_PATH = "DATA_EXTRACTION_WAREHOUSE_HTTP_PATH"
+ENV_VOLUME_PATH = "DATA_EXTRACTION_VOLUME_PATH"
+ENV_PROCESSING_JOB_ID = "DATA_EXTRACTION_PROCESSING_JOB_ID"
+ENV_APP_AI_QUERY_TABLE = "DATA_EXTRACTION_APP_AI_QUERY_TABLE"
+ENV_AGENT_ENDPOINT = "DATA_EXTRACTION_AGENT_ENDPOINT"
+
+_DEFAULT_DATABRICKS_HOST = "https://adb-7405607030687545.5.azuredatabricks.net"
+
+_bundle_root = Path(__file__).resolve().parent.parent.parent.parent
+_env_file = _bundle_root / ".env"
+
+
+def _load_dotenv_if_present() -> None:
+    """Load ``databricks_app/.env`` without overriding keys already set (e.g. on Apps)."""
+    if _env_file.is_file():
+        load_dotenv(_env_file, override=False)
+
+
+def _getenv_any(*keys: str, default: str = "") -> str:
+    """First non-empty ``os.environ[key]`` among ``keys``."""
+    for key in keys:
+        raw = os.getenv(key)
+        if raw is not None and str(raw).strip() != "":
+            return str(raw).strip()
+    return default
 
 
 def get_access_token(request: "Request | None", config: "AppConfig | None" = None) -> str:
     """
     Resolve access token: x-forwarded-access-token header if present, else config.token (env fallback).
     When config is None, only the header is used (no env fallback).
-
-    Flask equivalent:
-        from flask import request
-        user_token = request.headers.get('x-forwarded-access-token')
-
-    FastAPI equivalent (in a route):
-        @app.get("/")
-        def route(request: Request):
-            user_token = request.headers.get("x-forwarded-access-token")
     """
     header = (request.headers.get(FORWARDED_ACCESS_TOKEN_HEADER) or "").strip() if request else ""
     if header:
@@ -72,115 +95,40 @@ def get_access_token_diagnostic(request: "Request | None", config: "AppConfig | 
         "hint": hint,
     }
 
-_bundle_root = Path(__file__).resolve().parent.parent.parent.parent
-_env_file = _bundle_root / ".env"
-_settings_yaml = _bundle_root / "app_settings.yaml"
 
-_BUILTIN_APP_DEFAULTS: dict[str, str] = {
-    "warehouse_http_path": "/sql/1.0/warehouses/4b9b953939869799",
-    "volume_path": "/Volumes/data_extraction/default/documents",
-    "processing_job_id": "170364782025692",
-    "app_ai_query_table": "data_extraction.data_extraction.app_productmanuals_processed",
-    "agent_endpoint": "mas-ce26527c-endpoint",
-}
+class AppConfig(BaseModel):
+    """Runtime settings read from the process environment (see ``from_environ``)."""
 
+    model_config: ClassVar[ConfigDict] = ConfigDict(extra="ignore")
 
-def _load_app_settings_yaml() -> dict[str, Any]:
-    if not _settings_yaml.is_file():
-        return {}
-    with _settings_yaml.open(encoding="utf-8") as f:
-        data = yaml.safe_load(f)
-    if not data or not isinstance(data, dict):
-        return {}
-    return data
-
-
-def _merged_bundle_defaults() -> dict[str, str]:
-    out = dict(_BUILTIN_APP_DEFAULTS)
-    raw = _load_app_settings_yaml()
-    if not raw:
-        return out
-
-    whp = raw.get("warehouse_http_path")
-    if whp is not None and str(whp).strip():
-        out["warehouse_http_path"] = str(whp).strip()
-    else:
-        wid = raw.get("warehouse_id")
-        if wid is not None and str(wid).strip():
-            out["warehouse_http_path"] = f"/sql/1.0/warehouses/{str(wid).strip()}"
-
-    for key in ("volume_path", "processing_job_id", "app_ai_query_table", "agent_endpoint"):
-        if key in raw and raw[key] is not None and str(raw[key]).strip() != "":
-            out[key] = str(raw[key]).strip()
-
-    return out
-
-
-_BUNDLE_DEFAULTS = _merged_bundle_defaults()
-
-
-class AppConfig(BaseSettings):
-    model_config: ClassVar[SettingsConfigDict] = SettingsConfigDict(
-        env_file=_env_file,
-        env_prefix="DATA_EXTRACTION_",
-        extra="ignore",
-    )
-
-    # App
     app_name: str = Field(default=app_name, description="Application name")
 
-    # Databricks
-    host: str = Field(
-        default="https://adb-7405607030687545.5.azuredatabricks.net",
-        description="Databricks workspace URL",
-    )
-    # OAuth M2M: when both set, used for all workspace/auth (no user token required)
-    client_id: str = Field(
-        default_factory=lambda: os.environ.get("DATABRICKS_CLIENT_ID", ""),
-        description="OAuth client ID (app ID). When set with client_secret, auth uses OAuth M2M everywhere.",
-    )
-    client_secret: str = Field(
-        default_factory=lambda: os.environ.get("DATABRICKS_CLIENT_SECRET", ""),
-        description="OAuth client secret. When set with client_id, auth uses OAuth M2M everywhere.",
-    )
-    token: str = Field(
-        default_factory=lambda: os.environ.get("FEVM_TOKEN", ""),
-        description="Fallback PAT. Used when OAuth M2M (client_id/secret) is not set and X-Forwarded-Access-Token is not present.",
-    )
-
-    def use_oauth_m2m(self) -> bool:
-        """True when client_id and client_secret are both set (use OAuth M2M for all auth)."""
-        return bool((self.client_id or "").strip() and (self.client_secret or "").strip())
-
-    # SQL Warehouse
-    warehouse_http_path: str = Field(
-        default=_BUNDLE_DEFAULTS["warehouse_http_path"],
-        description="SQL Warehouse HTTP path",
-    )
-
-    # Volume & jobs
-    volume_path: str = Field(
-        default=_BUNDLE_DEFAULTS["volume_path"],
-        description="Volume path for PDF storage",
-    )
-    processing_job_id: str = Field(
-        default=_BUNDLE_DEFAULTS["processing_job_id"],
-        description="Job ID for Execute processing",
-    )
-
-    # Tables
+    host: str = Field(description="Databricks workspace URL")
+    token: str = Field(default="", description="Fallback PAT when x-forwarded-access-token is absent")
+    warehouse_http_path: str = Field(default="", description="SQL Warehouse HTTP path")
+    volume_path: str = Field(default="", description="Volume path for PDF storage")
+    processing_job_id: str = Field(default="", description="Job ID for Execute processing")
     app_ai_query_table: str = Field(
-        default=_BUNDLE_DEFAULTS["app_ai_query_table"],
+        default="",
         description="Full table name (catalog.schema.table) for AI query results",
     )
+    agent_endpoint: str = Field(default="", description="Databricks agent endpoint name for chat")
 
-    # Agent chat
-    agent_endpoint: str = Field(
-        default=_BUNDLE_DEFAULTS["agent_endpoint"],
-        description="Databricks agent endpoint name for chat",
-    )
-
-    # token fallback: FEVM_TOKEN or DATA_EXTRACTION_* from env (see get_access_token)
+    @classmethod
+    def from_environ(cls) -> AppConfig:
+        """
+        Build config from ``os.environ`` (after optional ``.env`` load). Keys match ``resources/bundle_app.yml``.
+        """
+        _load_dotenv_if_present()
+        return cls(
+            host=_getenv_any(ENV_DATABRICKS_HOST, ENV_DATA_EXTRACTION_HOST, default=_DEFAULT_DATABRICKS_HOST),
+            token=_getenv_any(ENV_FEVM_TOKEN, ENV_DATA_EXTRACTION_TOKEN),
+            warehouse_http_path=os.getenv(ENV_WAREHOUSE_HTTP_PATH, "") or "",
+            volume_path=os.getenv(ENV_VOLUME_PATH, "") or "",
+            processing_job_id=os.getenv(ENV_PROCESSING_JOB_ID, "") or "",
+            app_ai_query_table=os.getenv(ENV_APP_AI_QUERY_TABLE, "") or "",
+            agent_endpoint=os.getenv(ENV_AGENT_ENDPOINT, "") or "",
+        )
 
     @property
     def static_assets_path(self) -> Path:

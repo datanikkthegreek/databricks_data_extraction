@@ -15,7 +15,7 @@ from .logger import logger
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Initialize config and runtime, store in app.state for dependency injection
-    config = AppConfig()
+    config = AppConfig.from_environ()
     logger.info(f"Starting app with configuration:\n{config}")
 
     runtime = Runtime(config)
