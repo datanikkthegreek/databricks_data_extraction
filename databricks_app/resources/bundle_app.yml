@@ -1,5 +1,5 @@
 # Databricks app resource: ${var.*} below is substituted when you run `databricks bundle deploy` (not at Python runtime).
-# value_from references resource names in the same `resources` list. This becomes the app’s config.env (app.yaml on compute).
+# value_from references resource names in the same `resources` list. This becomes the app's config.env (app.yaml on compute).
 # `databricks.yml` defines `variables` *before* this `include` so interpolation works.
 # Fallback literals for local / artifact-only runs: see repo-root `app.yml` (must match `variables` defaults).
 resources:
@@ -17,6 +17,7 @@ resources:
         - sql
         - files.files
         - serving.serving-endpoints
+        - model-serving
       config:
         env:
           - name: DATABRICKS_HOST
