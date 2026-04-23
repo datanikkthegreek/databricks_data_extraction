@@ -1,7 +1,27 @@
 # Databricks asset bundle for Data Extraction App
 # See https://docs.databricks.com/dev-tools/bundles/index.html for documentation.
+#
+# App source vs bundle deploy:
+# - `databricks bundle deploy` syncs files to `${workspace.file_path}` (default: .../.bundle/<bundle.name>/<target>/files/)
+#   including `.build/`, and creates/updates the App resource. It does not push that tree onto app compute by itself.
+# - The UI may show: wait for compute to be ready (often 2–3 minutes) before deploying source — that is expected.
+# - After compute is ready, either:
+#     databricks bundle run data-extraction-app7 -t dev
+#   or (equivalent to what worked for you; app `name` must match `resources.apps.*.name`):
+#     databricks apps deploy data-extraction-app7 --source-code-path "${workspace.file_path}/.build"
+#   At the shell, `${workspace.file_path}` is not expanded — use the real path from the workspace file browser, e.g.
+#   /Workspace/Users/<you>/.bundle/data-extraction-app7/dev/files/.build
+#   Important: the middle folder must match this file's `bundle.name` (do not reuse an old .../app5/... path).
+# See: https://docs.databricks.com/aws/en/dev-tools/bundles/apps-tutorial
 bundle:
-  name: data-extraction-app5
+  name: data-extraction-app7
+
+# Unity Catalog volume backing PDF uploads (catalog.schema.volume). Must match the volume in
+# app_settings.yaml `volume_path` (/Volumes/<catalog>/<schema>/<volume>/).
+variables:
+  documents_volume_uc_name:
+    description: UC full name of the documents volume for app uploads (WRITE_VOLUME for the app's service principal)
+    default: nikks_fevm_workspace_7405607030687545.test1.documents
 
 artifacts:
   app:
@@ -15,10 +35,18 @@ sync:
 
 resources:
   apps:
-    data-extraction-app5:
-      name: "data-extraction-app5"
+    data-extraction-app7:
+      name: "data-extraction-app7"
       description: "Data Extraction App with PDF upload"
-      source_code_path: ./.build
+      source_code_path: ${workspace.file_path}/.build
+      # Grant the app's service principal access to the UC volume used for uploads (see app_settings volume_path).
+      # If uploads still fail with invalid_client, fix the app's OAuth client secret / app registration (M2M), not only UC.
+      resources:
+        - name: documents_volume
+          uc_securable:
+            securable_type: VOLUME
+            securable_full_name: ${var.documents_volume_uc_name}
+            permission: WRITE_VOLUME
 
 targets:
   dev:
