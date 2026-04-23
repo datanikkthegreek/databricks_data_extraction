@@ -10,13 +10,13 @@ from databricks.sdk.service.iam import User as UserOut
 from fastapi import APIRouter, Depends, HTTPException, Request
 
 from .._metadata import api_prefix
-from .config import AppConfig, get_access_token_diagnostic
+from .agent_server.agent import chat_supervisor_query
+from .config import get_access_token_diagnostic
 from .dependencies import ConfigDep, get_job_workspace_client, get_obo_ws, get_volume_obo_ws, get_volume_token
 from .logger import logger
 from .models import (
     AppAiQueryOut,
     ChatIn,
-    ChatMessageOut,
     ChatOut,
     FileInfo,
     FileListOut,
@@ -76,6 +76,34 @@ def _http_status_for_databricks_error(e: DatabricksError) -> int | None:
     ):
         return 404
     return None
+
+
+def _http_exception_from_agent_failure(exc: Exception) -> HTTPException:
+    """Structured error for /api/chat when ``serving_endpoints.query`` fails."""
+    if isinstance(exc, HTTPException):
+        return exc
+    if isinstance(exc, DatabricksError):
+        status = _http_status_for_databricks_error(exc) or 502
+        return HTTPException(
+            status_code=status,
+            detail={
+                "message": str(exc),
+                "error_code": exc.error_code,
+                "error_type": type(exc).__name__,
+                "hint": (
+                    "Check that DATA_EXTRACTION_AGENT_ENDPOINT names a serving endpoint in this workspace, "
+                    "the user token has required OAuth scopes (e.g. model-serving), and the user has CAN_QUERY on the endpoint."
+                ),
+            },
+        )
+    return HTTPException(
+        status_code=502,
+        detail={
+            "message": str(exc),
+            "error_type": type(exc).__name__,
+            "hint": "Unexpected error while calling serving_endpoints.query.",
+        },
+    )
 
 
 class _BytesIOWithLen(io.BytesIO):
@@ -404,199 +432,31 @@ def get_app_ai_query(
         raise HTTPException(status_code=502, detail=f"Query failed: {e!s}") from e
 
 
-def _format_agent_response_for_user(raw: list | dict | object) -> str:
-    """Turn agent response (list of message/function_call items or dict) into a single user-friendly string."""
-    import re
-    if isinstance(raw, list):
-        parts = []
-        for item in raw:
-            if not isinstance(item, dict):
-                continue
-            kind = item.get("type")
-            if kind == "message":
-                content = item.get("content")
-                if not isinstance(content, list):
-                    continue
-                for block in content:
-                    if isinstance(block, dict) and block.get("type") == "output_text":
-                        text = block.get("text") or ""
-                        text = (text or "").strip()
-                        # Skip internal agent handoff lines like <name>agent-invoiceanalyser</name>
-                        if re.match(r"^<name>\s*[\w-]+\s*</name>\s*$", text):
-                            continue
-                        if text:
-                            parts.append(text)
-            elif kind == "function_call":
-                # Optionally show a short hint that the agent is using a tool (skip for cleaner output)
-                pass
-        if parts:
-            return "\n\n".join(parts)
-        return str(raw)
-    if isinstance(raw, dict):
-        content = raw.get("content") or raw.get("output")
-        if content is not None:
-            return content if isinstance(content, str) else str(content)
-        if "choices" in raw and raw["choices"]:
-            first = raw["choices"][0]
-            msg = first.get("message", first) if isinstance(first, dict) else first
-            if isinstance(msg, dict):
-                return (msg.get("content") or "") if isinstance(msg.get("content"), str) else str(msg)
-            c = getattr(msg, "content", None)
-            return str(c) if c is not None else str(raw)
-    return str(raw)
-
-
-def _chat_via_mlflow(config: AppConfig, token: str, api_messages: list[dict]) -> ChatMessageOut:
-    """Use MLflow deployments client (recommended for agent endpoints)."""
-    import os
-    from mlflow.deployments import get_deploy_client
-
-    # MLflow Databricks client reads from env
-    host = (config.host or "").replace("https://", "").replace("http://", "")
-    prev_host = os.environ.get("DATABRICKS_HOST")
-    prev_token = os.environ.get("DATABRICKS_TOKEN")
-    try:
-        os.environ["DATABRICKS_HOST"] = f"https://{host}" if host else ""
-        os.environ["DATABRICKS_TOKEN"] = token or ""
-        client = get_deploy_client("databricks")
-        # Agent endpoints expect "input" (list of {role, content}), not "messages"
-        inputs = {"input": api_messages}
-        response = client.predict(endpoint=config.agent_endpoint, inputs=inputs)
-    finally:
-        if prev_host is not None:
-            os.environ["DATABRICKS_HOST"] = prev_host
-        elif "DATABRICKS_HOST" in os.environ:
-            del os.environ["DATABRICKS_HOST"]
-        if prev_token is not None:
-            os.environ["DATABRICKS_TOKEN"] = prev_token
-        elif "DATABRICKS_TOKEN" in os.environ:
-            del os.environ["DATABRICKS_TOKEN"]
-
-    # Agent can return a list of message/function_call items; normalize to user-friendly string
-    if isinstance(response, list):
-        content = _format_agent_response_for_user(response)
-        return ChatMessageOut(role="assistant", content=content)
-    if isinstance(response, dict):
-        # Dict might wrap the list (e.g. {"output": [...]}) or be OpenAI-like
-        for key in ("output", "content", "candidates", "messages"):
-            val = response.get(key)
-            if isinstance(val, list):
-                content = _format_agent_response_for_user(val)
-                return ChatMessageOut(role="assistant", content=content)
-        content = response.get("content") or response.get("output")
-        if content is None and "choices" in response:
-            choices = response["choices"]
-            if choices:
-                first = choices[0]
-                msg = first.get("message", first) if isinstance(first, dict) else first
-                if isinstance(msg, dict):
-                    content = msg.get("content", "")
-                else:
-                    content = getattr(msg, "content", None) or ""
-        if content is None:
-            content = str(response)
-        return ChatMessageOut(role="assistant", content=content if isinstance(content, str) else str(content))
-    choices = getattr(response, "choices", None) or []
-    if choices:
-        first = choices[0]
-        msg = getattr(first, "message", first)
-        content = getattr(msg, "content", None) or ""
-    else:
-        content = str(response)
-    return ChatMessageOut(role="assistant", content=content if isinstance(content, str) else str(content))
-
-
 @api.post("/chat", response_model=ChatOut, operation_id="chat")
 def chat(
+    request: Request,
     config: ConfigDep,
-    ws: Annotated[WorkspaceClient, Depends(get_volume_obo_ws)],
-    token: Annotated[str, Depends(get_volume_token)],
     payload: ChatIn,
 ):
-    """Send messages to the configured Databricks agent endpoint and return the assistant reply.
-    Uses MLflow deployments client (recommended for agents) with fallback to OpenAI-compatible client.
-    See https://docs.databricks.com/en/generative-ai/agent-framework/query-agent and
-    https://github.com/databricks/app-templates/blob/main/e2e-chatbot-app-next/README.md
+    """Send messages via ``get_user_workspace_client()`` → ``user_client.serving_endpoints.query``.
 
-    Authentication (how the chat endpoint is authenticated):
-    - This route uses the same auth as the rest of the app via get_volume_obo_ws and get_volume_token.
-    - Token source (in order):
-      1) X-Forwarded-Access-Token request header: when the app runs inside Databricks (e.g. Databricks
-         Apps), the platform forwards the user's OAuth token in this header. The backend uses it to call
-         the agent endpoint on behalf of that user.
-      2) Fallback (local dev): If the header is missing or empty, the backend uses the token from
-         config.token, which is loaded from environment: FEVM_TOKEN or DATA_EXTRACTION_TOKEN (see
-         config.py). So for local development you set one of those env vars (e.g. a PAT) and do not
-         need to send X-Forwarded-Access-Token.
-    - The token is then used in two ways:
-      - MLflow path: DATABRICKS_HOST (from config.host) and DATABRICKS_TOKEN are set in the process
-        env before calling get_deploy_client("databricks"); the MLflow client uses them to call the
-        Databricks serving API.
-      - OpenAI path: the WorkspaceClient (ws) was already built with host=config.host and
-        token=use_token; ws.serving_endpoints.get_open_ai_client() uses that to call the endpoint.
-    - The agent endpoint (config.agent_endpoint, e.g. mas-2e8563e1-endpoint) must allow the token's
-      identity (user or service principal) to CAN_QUERY; otherwise the serving gateway returns an
-      error that surfaces as 502.
+    The user token comes only from ``x-forwarded-access-token`` on Apps (not ``get_volume_token`` /
+    env PAT), so serving is attributed to the signed-in user.
+
+    MLflow AgentServer uses the same client logic: ``POST /api/agent/invocations`` or ``POST /api/agent/responses``.
     """
     if not payload.messages:
         raise HTTPException(status_code=400, detail="messages cannot be empty")
     api_messages = [{"role": m.role, "content": m.content} for m in payload.messages]
 
-    # 1) Try MLflow deployments client (recommended for agent/MAS endpoints; see template README)
-    mlflow_error = None
     try:
-        msg_out = _chat_via_mlflow(config, token, api_messages)
+        msg_out = chat_supervisor_query(request, config, api_messages)
         return ChatOut(message=msg_out)
     except Exception as e:
-        mlflow_error = e
         logger.error(
-            "[CHAT] MLflow agent call failed: %s: %s",
+            "[CHAT] serving_endpoints.query failed: %s: %s",
             type(e).__name__,
             e,
             exc_info=True,
         )
-
-    # 2) Fallback: Databricks OpenAI-compatible client
-    try:
-        client = ws.serving_endpoints.get_open_ai_client()
-        response = client.chat.completions.create(
-            model=config.agent_endpoint,
-            messages=api_messages,
-        )
-    except Exception as e:
-        logger.error(
-            "[CHAT] OpenAI client call failed: %s: %s",
-            type(e).__name__,
-            e,
-            exc_info=True,
-        )
-        # Build detail so user sees both errors if both paths failed
-        detail_parts = [f"OpenAI client: {type(e).__name__}: {e!s}"]
-        if mlflow_error is not None:
-            detail_parts.insert(
-                0,
-                f"MLflow client: {type(mlflow_error).__name__}: {mlflow_error!s}",
-            )
-        raise HTTPException(
-            status_code=502,
-            detail="; ".join(detail_parts),
-        ) from e
-    try:
-        choices = getattr(response, "choices", None) or []
-        if not choices:
-            raise HTTPException(status_code=502, detail="Agent returned no reply")
-        first = choices[0]
-        msg = getattr(first, "message", first)
-        content = getattr(msg, "content", None) or ""
-        role = getattr(msg, "role", None) or "assistant"
-        return ChatOut(message=ChatMessageOut(role=str(role), content=str(content)))
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(
-            "[CHAT] Error parsing agent response: %s: %s",
-            type(e).__name__,
-            e,
-            exc_info=True,
-        )
-        raise HTTPException(status_code=502, detail=f"Agent response invalid: {e!s}") from e
+        raise _http_exception_from_agent_failure(e) from e

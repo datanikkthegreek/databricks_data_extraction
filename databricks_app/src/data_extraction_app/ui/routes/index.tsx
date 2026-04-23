@@ -503,7 +503,14 @@ function UploadPage() {
       const { data } = await chat({ messages: messagesForApi });
       setChatMessages((prev) => [...prev, { role: "assistant", content: data.message.content }]);
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Agent unavailable";
+      let message: string;
+      if (err instanceof ApiError) {
+        message = `${err.message}\n(HTTP ${err.status})`;
+      } else if (err instanceof Error) {
+        message = err.message;
+      } else {
+        message = "Agent unavailable";
+      }
       setChatError(message);
     } finally {
       setChatLoading(false);
@@ -906,9 +913,12 @@ function UploadPage() {
                 </Button>
               </div>
               {chatError && (
-                <div className="flex items-center gap-2 text-destructive text-sm">
-                  <AlertCircle className="h-4 w-4 flex-shrink-0" />
-                  <span>{chatError}</span>
+                <div className="flex gap-2 rounded-md border border-destructive/30 bg-destructive/5 p-3 text-destructive text-sm">
+                  <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                  <div className="min-w-0 space-y-1">
+                    <p className="font-medium">Agent request failed</p>
+                    <p className="whitespace-pre-wrap break-words text-muted-foreground">{chatError}</p>
+                  </div>
                 </div>
               )}
             </CardContent>
