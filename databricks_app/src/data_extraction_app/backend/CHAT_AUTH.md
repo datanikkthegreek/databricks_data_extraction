@@ -1,22 +1,17 @@
 # Chat endpoint authentication
 
-How the `/api/chat` route authenticates to the Databricks agent endpoint.
+How the `/api/chat` route authenticates to the Databricks agent endpoint (OBO only — no OAuth client secret in code).
 
 ## Where the token comes from
 
-1. **OAuth M2M (client_id + client_secret)**  
-   If **`DATABRICKS_CLIENT_ID`** and **`DATABRICKS_CLIENT_SECRET`** are both set, the backend uses **OAuth machine-to-machine** for all routes (files, jobs, chat, etc.). No user token or header is required. For chat/SQL the backend obtains an access token from the SDK and uses it for MLflow and the agent endpoint.
+1. **Databricks Apps (recommended)**  
+   Open the app from the **Databricks Apps launcher** (not a raw URL). The platform sends the signed-in user’s token in **`X-Forwarded-Access-Token`**. The backend uses that token for MLflow and the OpenAI-compatible agent client.
 
-2. **When running in Databricks (e.g. Databricks Apps)**  
-   If M2M is not set, the platform sends the user’s token in the **`X-Forwarded-Access-Token`** request header.  
-   The backend uses this token for all chat calls (MLflow and OpenAI client).
-
-3. **When running locally (no M2M)**  
-   If that header is missing or empty, the backend uses the token from **config**:
-   - `FEVM_TOKEN`, or
+2. **Local development**  
+   If the header is missing or empty, the backend uses the PAT from **config** (env):
+   - `FEVM_TOKEN`, or  
    - `DATA_EXTRACTION_TOKEN`  
-   (see `config.py`: `token` is loaded from env with that default).  
-   So for local dev you set one of these env vars (e.g. a Databricks PAT) and do **not** need to send `X-Forwarded-Access-Token`.
+   (see `config.py`: `token` is loaded via pydantic-settings with those env names / `databricks_app/.env`).
 
 ## How the token is used
 
@@ -30,12 +25,12 @@ How the `/api/chat` route authenticates to the Databricks agent endpoint.
 
 ## Requirements for 502 to go away
 
-- The **identity** behind the token (user or service principal) must have **CAN_QUERY** on the agent endpoint (e.g. `mas-2e8563e1-endpoint`).
+- The **identity** behind the token (the signed-in user, or the PAT owner when local) must have **CAN_QUERY** on the agent endpoint named in `AGENT_ENDPOINT` (`databricks.yml` / `app.yml`).
 - For a Multi-Agent Supervisor (MAS), the same permission is needed on any **underlying agent** endpoints the MAS calls (see [Databricks Agent Chat Template](https://github.com/databricks/app-templates/blob/main/e2e-chatbot-app-next/README.md)).
 
 ## Seeing the real error when you get 502
 
-- The backend now returns the **exception message(s)** in the 502 response body as `detail` (e.g. `"MLflow client: ...; OpenAI client: ..."` if both paths were tried and failed).
+- The backend returns the **exception message(s)** in the 502 response body as `detail` (e.g. `"MLflow client: ...; OpenAI client: ..."` if both paths were tried and failed).
 - The **chat UI** shows this `detail` in the red error text under the input when a request fails.
 - **Server logs** contain the full traceback for both MLflow and OpenAI client failures (`[CHAT] MLflow agent call failed` and `[CHAT] OpenAI client call failed` with `exc_info=True`).
 
@@ -49,7 +44,7 @@ For **list** and **upload** of files (Files API), the token must have the Databr
 
 then:
 
-- **OAuth / Apps:** Ensure the app’s OAuth client (or the user’s token) is granted the **files** scope in Databricks.
+- **Databricks Apps:** Ensure the user’s token (forwarded from the platform) includes the **files** scope for your app/OAuth setup.
 - **PAT (local or fallback):** Create the token in **User Settings → Developer → Access tokens** and enable **Files** (or the scope that includes Files API).
 
 ## Auth diagnostic endpoint

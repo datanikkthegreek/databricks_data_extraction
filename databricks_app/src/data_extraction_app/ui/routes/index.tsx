@@ -409,22 +409,13 @@ function UploadPage() {
         const { data } = await getJobRun({ run_id: runId });
         setRunStatus(data);
         const terminal = isJobRunTerminal(data);
-        // #region agent log
-        fetch("http://127.0.0.1:7243/ingest/f4c9d870-a267-43c3-9ac7-83f9fa3251ec",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({hypothesisId:"B,E",location:"index.tsx:poll",message:"poll response",data:{life_cycle_state:data.life_cycle_state,result_state:data.result_state,isTerminal:terminal,run_id:runId},timestamp:Date.now()})}).catch(()=>{});
-        // #endregion
         if (terminal) {
           if (pollIntervalRef.current) {
             clearInterval(pollIntervalRef.current);
             pollIntervalRef.current = null;
           }
-          // #region agent log
-          fetch("http://127.0.0.1:7243/ingest/f4c9d870-a267-43c3-9ac7-83f9fa3251ec",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({hypothesisId:"A",location:"index.tsx:clearInterval",message:"clearing interval terminal",data:{run_id:runId},timestamp:Date.now()})}).catch(()=>{});
-          // #endregion
         }
       } catch (err) {
-        // #region agent log
-        fetch("http://127.0.0.1:7243/ingest/f4c9d870-a267-43c3-9ac7-83f9fa3251ec",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({hypothesisId:"B",location:"index.tsx:poll catch",message:"poll error",data:{err:String(err),run_id:runId},timestamp:Date.now()})}).catch(()=>{});
-        // #endregion
         // keep polling on transient errors
       }
     };
@@ -512,19 +503,13 @@ function UploadPage() {
       const { data } = await chat({ messages: messagesForApi });
       setChatMessages((prev) => [...prev, { role: "assistant", content: data.message.content }]);
     } catch (err) {
-      let message = "Agent unavailable";
-      if (err instanceof ApiError && err.body && typeof err.body === "object" && "detail" in err.body) {
-        const d = (err.body as { detail?: string | { message?: string; hint?: string; fix_databricks?: string; fix_local?: string } }).detail;
-        if (typeof d === "string") {
-          message = d;
-        } else if (d && typeof d === "object" && "message" in d) {
-          const parts = [d.message, d.hint, d.fix_databricks, d.fix_local].filter(Boolean);
-          message = parts.join(" ");
-        } else {
-          message = JSON.stringify(d);
-        }
+      let message: string;
+      if (err instanceof ApiError) {
+        message = `${err.message}\n(HTTP ${err.status})`;
       } else if (err instanceof Error) {
         message = err.message;
+      } else {
+        message = "Agent unavailable";
       }
       setChatError(message);
     } finally {
@@ -751,13 +736,21 @@ function UploadPage() {
               )}
 
               {triggerJobMutation.isError && (
-                <div className="flex items-center gap-2 text-destructive text-sm">
-                  <AlertCircle className="h-4 w-4 flex-shrink-0" />
-                  <span>
-                    {triggerJobMutation.error instanceof Error
-                      ? triggerJobMutation.error.message
-                      : "Failed to start job"}
-                  </span>
+                <div className="flex gap-2 rounded-md border border-destructive/30 bg-destructive/5 p-3 text-destructive text-sm">
+                  <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                  <div className="min-w-0 space-y-1">
+                    <p className="font-medium">Could not start processing job</p>
+                    <p className="whitespace-pre-wrap break-words text-muted-foreground">
+                      {triggerJobMutation.error instanceof ApiError
+                        ? triggerJobMutation.error.message
+                        : triggerJobMutation.error instanceof Error
+                          ? triggerJobMutation.error.message
+                          : "Failed to start job"}
+                    </p>
+                    {triggerJobMutation.error instanceof ApiError && (
+                      <p className="text-xs text-muted-foreground">HTTP {triggerJobMutation.error.status}</p>
+                    )}
+                  </div>
                 </div>
               )}
             </CardContent>
@@ -920,9 +913,12 @@ function UploadPage() {
                 </Button>
               </div>
               {chatError && (
-                <div className="flex items-center gap-2 text-destructive text-sm">
-                  <AlertCircle className="h-4 w-4 flex-shrink-0" />
-                  <span>{chatError}</span>
+                <div className="flex gap-2 rounded-md border border-destructive/30 bg-destructive/5 p-3 text-destructive text-sm">
+                  <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                  <div className="min-w-0 space-y-1">
+                    <p className="font-medium">Agent request failed</p>
+                    <p className="whitespace-pre-wrap break-words text-muted-foreground">{chatError}</p>
+                  </div>
                 </div>
               )}
             </CardContent>

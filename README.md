@@ -1,3 +1,5 @@
+**Editors:** Merve Karali and Nikolaos Servos
+
 The goal of this solution accelerator is to transform unstructured product manuals into structured, queryable data using Databricks Agent Bricks AI Functions, enabling organizations to build a complete document intelligence pipeline without custom model training or rigid templates. This solution addresses the challenge of extracting critical technical data—such as product specifications and component compatibility—from varying document formats and inconsistent vendor terminology, which is too slow and error-prone for manual processing.
 
 ### End-to-End Architecture Summary
@@ -24,11 +26,11 @@ All those elements are set-up and deployed with this solution by following the b
 
 Architecture
 
-![Architecture](docs/images/architecture.png)
+![Architecture](docs/images/Architecture.png)
 
 This guide covers deploying the **Databricks Asset Bundle** under [`databricks_etl/`](databricks_etl/) (Spark Declarative pipelines and jobs including a Supervisor Agent).
 
-**App deployment:** end-to-end deployment of the FastAPI / apx **app** bundle from Git is **coming soon**.
+**App deployment:** the FastAPI / apx app bundle lives under [`databricks_app/`](databricks_app/). **The app bundle is deployed only from your local machine** using the Databricks CLI, not from the workspace bundle UI. Follow **step 8** under [Local Deployment via CLI](#local-deployment-via-cli).
 
 # Deployment from the Databricks Workspace UI
 
@@ -182,9 +184,80 @@ You can also run the job with different settings and set the parameter create_ag
 
 Important: The Knowledge Assistant will take at least 15 min to build up. To reduce costs we do not let the job run until the syncing of the Agent has been completed. You can check the status on the Agents tab.
 
+## 8. Databricks App (`databricks_app`)
+
+This step deploys the **Databricks App** (FastAPI + [apx](https://docs.databricks.com/aws/en/dev-tools/bundles/apps-tutorial)) that orchestrates uploads, SQL warehouse queries, and chat against your agent serving endpoint. It is a **separate** bundle from [`databricks_etl/`](databricks_etl/): the bundle root is the directory that contains [`databricks_app/databricks.yml`](databricks_app/databricks.yml). **Deploy this app bundle from your local CLI only** (workspace bundle UI is not used here); complete the substeps below from your machine.
+
+**Prerequisites:** Install the Databricks CLI and configure a profile as in [§ 1](#1-install-the-databricks-cli-and-configure-a-profile) (*Install the Databricks CLI and configure a profile*).
+
+### 8.1 Configure app environment (`app.yml`)
+
+Edit [`databricks_app/app.yml`](databricks_app/app.yml) in your **local clone** before you run `databricks bundle deploy` (this repo does not document deploying that bundle from the workspace UI).
+
+Runtime environment variables for the app are defined there:
+
+| `env` name | Purpose |
+|------------|---------|
+| `WAREHOUSE_ID` | SQL warehouse ID; the app builds the HTTP path `/sql/1.0/warehouses/{id}` for warehouse queries. |
+| `JOB_ID` | Databricks Jobs job ID used when triggering the processing job from the app. |
+| `VOLUME_PATH` | Unity Catalog volume path where PDFs are stored (same style as ETL: `/Volumes/<catalog>/<schema>/<volume>/`). |
+| `AI_EXTRACT_PROCESSED_TABLE` | Full table name (`catalog.schema.table`) for the processed / queryable extraction results. |
+| `AGENT_ENDPOINT` | Name of the **serving endpoint** for the supervisor / chat agent. |
+
+For **local** runs (for example `apx dev`), the backend also expects a workspace **host** and token fallback via `DATABRICKS_HOST` or `DATA_EXTRACTION_HOST`, and `FEVM_TOKEN` or `DATA_EXTRACTION_TOKEN`, typically in [`databricks_app/.env`](databricks_app/.env). On Databricks Apps, the platform usually supplies the forwarded access token; align any extra env with your workspace policy.
+
+### 8.2 Configure the deployed app name prefix
+
+In [`databricks_app/databricks.yml`](databricks_app/databricks.yml), set **`variables.app_name_prefix`**. The Apps resource **`name`** is `"${var.app_name_prefix}-data-extraction-app"` (for example `extract-7-data-extraction-app` when the default prefix is `extract-7`). You can override at deploy time without editing the file:
+
+```bash
+databricks bundle deploy -p <profile> --var app_name_prefix=my-team
+```
+
+### 8.3 Build and deploy the app bundle
+
+From the app bundle directory (must be the folder containing `databricks.yml`):
+
+```bash
+cd databricks_app
+databricks bundle validate -p <profile>
+databricks bundle deploy -p <profile>
+```
+
+`databricks bundle deploy` runs the bundle `artifacts.app` build (`uv run apx build`) and syncs `.build` to the workspace. Replace `<profile>` with your CLI profile (see § 1).
+
+Official reference: [Deploy Databricks Apps with Databricks Asset Bundles](https://docs.databricks.com/aws/en/dev-tools/bundles/apps-tutorial).
+
+### 8.4 Start the app manually
+
+After a successful deploy, open the workspace **Apps** experience (for example **Compute → Apps**, depending on your workspace UI), select the app whose name matches `${app_name_prefix}-data-extraction-app`, and **start** it if it is stopped, then open the app URL. Policies vary by workspace; if the app does not auto-start, use this step before testing.
+
+### 8.5 Optional: deploy or refresh from the Apps CLI
+
+You can point the app at an already-synced bundle build under your user’s `.bundle` path (for example after `databricks bundle deploy`). Use your workspace account segment and bundle target in place of the placeholders:
+
+```bash
+databricks apps deploy <app-name> \
+  --source-code-path /Workspace/Users/<workspace-user>/.bundle/data-extraction-app/dev/files/.build
+```
+
+Example (replace the user segment with yours):
+
+```bash
+databricks apps deploy extract-7-data-extraction-app \
+  --source-code-path /Workspace/Users/nikolaos.servos@databricks.com/.bundle/data-extraction-app/dev/files/.build
+```
+
+- **`<app-name>`** must match the deployed app **`name`** in [`databricks_app/databricks.yml`](databricks_app/databricks.yml) (`${var.app_name_prefix}-data-extraction-app`).
+- **`data-extraction-app`** in the path is **`bundle.name`** in that file; **`<target>`** is the bundle target (for example `dev`).
+
+### 8.6 App users and underlying resources
+
+Anyone who should **use** the Data Extraction App (not only deploy it) needs **Unity Catalog and workspace access** to the same underlying resources the app calls: the **volume** used for uploads, the **processed table** queried in SQL, the **SQL warehouse**, the **Jobs** job triggered for processing, and the **agent serving endpoint** used for chat. Grant the appropriate privileges (for example read/write on the volume, `SELECT` on the table, `CAN_USE` on the warehouse, `CAN_MANAGE_RUN` or run permission on the job, and `CAN_QUERY` on the endpoint) so each user’s identity is allowed for those objects in your workspace (typically the signed-in user when the app runs on Databricks Apps).
+
 ## Additional information
 
-### ***Databricks App orchestrating the workflow is coming soon***
+
 
 ### Automatic job runs (file arrival)
 

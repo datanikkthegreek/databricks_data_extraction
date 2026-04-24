@@ -16,7 +16,7 @@ variables:
     default: test1
   table_prefix:
     description: Prefix for Delta tables (e.g. app_invoices_parsed) and workspace job/pipeline names (e.g. app_extract_invoices_etl).
-    default: extract_7
+    default: extract_8
   volume:
     description: The volume to use for uploading files
     default: /Volumes/nikks_fevm_workspace_7405607030687545/test1/documents/
