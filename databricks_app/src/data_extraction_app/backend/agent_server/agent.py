@@ -1,8 +1,8 @@
 """
 Databricks Apps / MLflow GenAI agent server handler.
 
-Uses ``user_client = get_user_workspace_client(...)`` then ``user_client.serving_endpoints.query(...)``
-with the end-user OBO token — not the app’s generic ``WorkspaceClient`` from route dependencies.
+Uses ``get_user_workspace_client(...)`` then ``post_serving_endpoint_invocations`` (raw JSON from
+``/serving-endpoints/.../invocations``) so Responses-style ``output`` is not dropped by the SDK model.
 """
 
 from __future__ import annotations
@@ -18,6 +18,7 @@ from mlflow.types.responses import ResponsesAgentRequest, ResponsesAgentResponse
 from ..agent_output import format_agent_response_for_user
 from ..config import AppConfig
 from ..serving_endpoint_metadata import log_serving_forbidden_metadata
+from ..serving_raw_invocation import post_serving_endpoint_invocations
 from ..models import ChatMessageOut
 from ..logger import logger
 from ..workspace_auth import (
@@ -38,8 +39,8 @@ def _minimal_assistant_message(text: str) -> dict[str, Any]:
 
 
 def _serving_response_to_output_items(resp: Any) -> list[dict[str, Any]]:
-    """Map ``serving_endpoints.query`` response to MLflow Responses ``output`` list."""
-    d = resp.as_dict() if hasattr(resp, "as_dict") else {}
+    """Map serving invocations JSON (or SDK response) to MLflow Responses ``output`` list."""
+    d: dict[str, Any] = resp if isinstance(resp, dict) else (resp.as_dict() if hasattr(resp, "as_dict") else {})
     if not isinstance(d, dict):
         return [_minimal_assistant_message(str(resp))]
 
@@ -89,7 +90,7 @@ def chat_supervisor_query(
     Same serving call as :func:`invoke_handler`, for the FastAPI ``/api/chat`` route.
 
     Uses ``x-forwarded-access-token`` on the request (never the volume/env PAT fallback used
-    elsewhere), so ``serving_endpoints.query`` runs as the signed-in user on Apps.
+    elsewhere), so invocations run as the signed-in user on Apps.
     """
     endpoint = (config.agent_endpoint or get_supervisor_endpoint_name() or "").strip()
     if not endpoint:
@@ -109,17 +110,16 @@ def chat_supervisor_query(
         ) from e
     payload = [dict(m) for m in api_messages]
     try:
-        resp = user_client.serving_endpoints.query(name=endpoint, input=payload)
+        raw = post_serving_endpoint_invocations(user_client, endpoint, {"input": payload})
     except Exception as first:
         logger.warning(
-            "[CHAT] user_client.serving_endpoints.query(input=...) failed (%s: %s); retrying with inputs={'input': ...}",
+            "[CHAT] serving invocations input=... failed (%s: %s); retrying with inputs={'input': ...}",
             type(first).__name__,
             first,
         )
-        resp = user_client.serving_endpoints.query(name=endpoint, inputs={"input": payload})
+        raw = post_serving_endpoint_invocations(user_client, endpoint, {"inputs": {"input": payload}})
 
-    d = resp.as_dict() if hasattr(resp, "as_dict") else {}
-    text = format_agent_response_for_user(d)
+    text = format_agent_response_for_user(raw)
     return ChatMessageOut(role="assistant", content=text)
 
 
@@ -133,14 +133,14 @@ async def invoke_handler(request: ResponsesAgentRequest) -> ResponsesAgentRespon
     payload = [m.model_dump(mode="json", exclude_none=True) for m in request.input]
     try:
         try:
-            resp = user_client.serving_endpoints.query(name=endpoint, input=payload)
+            raw = post_serving_endpoint_invocations(user_client, endpoint, {"input": payload})
         except Exception as first:
             logger.warning(
-                "[AGENT] user_client.serving_endpoints.query(input=...) failed (%s: %s); retrying with inputs={'input': ...}",
+                "[AGENT] serving invocations input=... failed (%s: %s); retrying with inputs={'input': ...}",
                 type(first).__name__,
                 first,
             )
-            resp = user_client.serving_endpoints.query(name=endpoint, inputs={"input": payload})
+            raw = post_serving_endpoint_invocations(user_client, endpoint, {"inputs": {"input": payload}})
     except DatabricksError as e:
         log_serving_forbidden_metadata(
             e,
@@ -149,5 +149,5 @@ async def invoke_handler(request: ResponsesAgentRequest) -> ResponsesAgentRespon
             request=None,
         )
         raise
-    output = _serving_response_to_output_items(resp)
+    output = _serving_response_to_output_items(raw)
     return ResponsesAgentResponse(output=output)

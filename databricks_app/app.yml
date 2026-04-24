@@ -18,3 +18,7 @@ env:
     value: "nikks_fevm_workspace_7405607030687545.test1.extract_7_productmanuals_processed"
   - name: DATA_EXTRACTION_AGENT_ENDPOINT
     value: "mas-7dfd5937-endpoint"
+  - name: GENIE_SPACE_ID
+    value: ""
+  - name: DATA_EXTRACTION_KNOWLEDGE_ASSISTANT_ENDPOINT
+    value: "ka-795868f8-endpoint"
