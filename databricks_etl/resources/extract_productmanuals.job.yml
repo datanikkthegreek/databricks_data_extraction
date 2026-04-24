@@ -6,9 +6,6 @@ resources:
       permissions:
         - group_name: users
           level: CAN_MANAGE
-        # App / service principal OAuth client ID (M2M) — can trigger and manage runs of this job
-        - service_principal_name: c874295c-5d0c-4bf0-8aa7-4903d7ba9d84
-          level: CAN_MANAGE_RUN
 
       #trigger:
       #  pause_status: UNPAUSED

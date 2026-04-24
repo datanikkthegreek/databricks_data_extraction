@@ -30,7 +30,7 @@ Architecture
 
 This guide covers deploying the **Databricks Asset Bundle** under [`databricks_etl/`](databricks_etl/) (Spark Declarative pipelines and jobs including a Supervisor Agent).
 
-**App deployment:** the FastAPI / apx app bundle lives under [`databricks_app/`](databricks_app/). Deploy it with the Databricks CLI as in **step 8** under [Local Deployment via CLI](#local-deployment-via-cli).
+**App deployment:** the FastAPI / apx app bundle lives under [`databricks_app/`](databricks_app/). Deploy it from the workspace UI ([§ 6](#6-deploy-the-databricks-app-from-the-workspace-ui)) or with the Databricks CLI (**step 8** under [Local Deployment via CLI](#local-deployment-via-cli)).
 
 # Deployment from the Databricks Workspace UI
 
@@ -88,6 +88,25 @@ After a successful deploy, open **Workflows** → **Jobs** (or run workflows fro
 When starting a run from the UI, you can set the job parameter **`create_agent`** to `false` if the Knowledge Assistant and Supervisor notebook tasks should be skipped; the default is `true`.
 
 Important: The Knowledge Assistant will take at least 15 min to build up. To reduce costs we do not let the job run until the syncing of the Agent has been completed. You can check the status on the Agents tab.
+
+## 6. Deploy the Databricks App from the workspace UI
+
+The **Databricks App** bundle is under [`databricks_app/`](databricks_app/) (FastAPI + apx). It is **not** the same folder as [`databricks_etl/`](databricks_etl/); treat each directory that contains its own `databricks.yml` as a separate bundle project.
+
+1. **Open the app bundle in the workspace**  
+   After cloning the repo (step 1), navigate to the **`databricks_app`** folder (the one that contains [`databricks_app/databricks.yml`](databricks_app/databricks.yml)) and use it as the bundle root, the same way you use `databricks_etl` for the ETL bundle. See [I have a bundle in a GitHub repository](https://docs.databricks.com/aws/en/dev-tools/bundles/workspace.html).
+
+2. **Configure app environment (`app.yml`)**  
+   Edit [`databricks_app/app.yml`](databricks_app/app.yml) in the workspace and set each `env` entry for your workspace: `WAREHOUSE_ID`, `JOB_ID`, `VOLUME_PATH`, `AI_EXTRACT_PROCESSED_TABLE`, and `AGENT_ENDPOINT`. (See the table in step **8.1** under [Local Deployment via CLI](#local-deployment-via-cli).) For editing and committing YAML from the UI, see [Author bundles in the workspace](https://docs.databricks.com/aws/en/dev-tools/bundles/workspace-author).
+
+3. **Configure the deployed app name (optional)**  
+   In [`databricks_app/databricks.yml`](databricks_app/databricks.yml), adjust **`variables.app_name_prefix`** if you want a different app display name (`${app_name_prefix}-data-extraction-app`).
+
+4. **Deploy with the workspace Deploy flow**  
+   Use the bundle **Deploy** action for this folder, pick the correct **target** (for example `dev` in [`databricks_app/databricks.yml`](databricks_app/databricks.yml)), and complete the deploy so the app build runs and code syncs to the workspace. Help: [Tutorial: Create and deploy a bundle in the workspace](https://docs.databricks.com/aws/en/dev-tools/bundles/workspace-tutorial), [Deploy bundles and run workflows from the workspace](https://docs.databricks.com/aws/en/dev-tools/bundles/workspace-deploy), and [Deploy Databricks Apps with Databricks Asset Bundles](https://docs.databricks.com/aws/en/dev-tools/bundles/apps-tutorial).
+
+5. **Start and open the app**  
+   In the workspace, open **Apps** (or **Compute → Apps**, depending on UI), find the app named like `${app_name_prefix}-data-extraction-app`, **start** it if needed, then open the app URL. See also [step 8.4](#84-start-the-app-manually) for the same idea from the CLI-oriented section.
 
 # Local Deployment via CLI
 
@@ -186,7 +205,7 @@ Important: The Knowledge Assistant will take at least 15 min to build up. To red
 
 ## 8. Databricks App (`databricks_app`)
 
-This step deploys the **Databricks App** (FastAPI + [apx](https://docs.databricks.com/aws/en/dev-tools/bundles/apps-tutorial)) that orchestrates uploads, SQL warehouse queries, and chat against your agent serving endpoint. It is a **separate** bundle from [`databricks_etl/`](databricks_etl/): the bundle root is the directory that contains [`databricks_app/databricks.yml`](databricks_app/databricks.yml).
+This step deploys the **Databricks App** (FastAPI + [apx](https://docs.databricks.com/aws/en/dev-tools/bundles/apps-tutorial)) that orchestrates uploads, SQL warehouse queries, and chat against your agent serving endpoint. It is a **separate** bundle from [`databricks_etl/`](databricks_etl/): the bundle root is the directory that contains [`databricks_app/databricks.yml`](databricks_app/databricks.yml). To deploy from the workspace UI instead, follow [§ 6](#6-deploy-the-databricks-app-from-the-workspace-ui).
 
 **Prerequisites:** Install the Databricks CLI and configure a profile as in [§ 1](#1-install-the-databricks-cli-and-configure-a-profile) (*Install the Databricks CLI and configure a profile*).
 
