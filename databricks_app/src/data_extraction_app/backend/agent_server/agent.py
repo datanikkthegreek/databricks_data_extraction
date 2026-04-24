@@ -47,6 +47,10 @@ def _serving_response_to_output_items(resp: Any) -> list[dict[str, Any]]:
     if isinstance(out, list) and out and isinstance(out[0], dict):
         return out
 
+    outs = d.get("outputs")
+    if isinstance(outs, list) and outs and isinstance(outs[0], dict):
+        return outs
+
     preds = d.get("predictions")
     if isinstance(preds, list) and preds:
         p0 = preds[0]

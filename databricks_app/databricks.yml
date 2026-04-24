@@ -14,9 +14,9 @@
 #   Important: the middle folder must match this file's `bundle.name` (do not reuse an old .../app5/... path).
 # See: https://docs.databricks.com/aws/en/dev-tools/bundles/apps-tutorial
 bundle:
-  name: data-extraction-app8
+  name: data-extraction-app9
 
-# Declare variables before `include:` so `${var.*}` inside included YAML resolves during bundle processing.
+# Declare variables before `resources` so `${var.*}` in the app definition resolves during bundle processing.
 variables:
   documents_volume_uc_name:
     description: UC full name of the documents volume for app uploads (WRITE_VOLUME for the app's service principal)
@@ -37,9 +37,49 @@ variables:
     description: Workspace URL (DATABRICKS_HOST); override per target if needed
     default: "https://adb-7405607030687545.5.azuredatabricks.net"
 
-# App definition + config.env (${var.*} expanded at deploy). Same app key must not appear twice in the bundle.
-include:
-  - resources/bundle_app.yml
+# Databricks app: ${var.*} is substituted at `databricks bundle deploy`. value_from names refer to entries under
+# resources.apps.*.resources. Fallback literals for local / artifact-only runs: see `app.yml`.
+resources:
+  apps:
+    data-extraction-app9:
+      name: "data-extraction-app9"
+      description: "Data Extraction App with PDF upload"
+      source_code_path: ${workspace.file_path}/.build
+      # OBO (user authorization): downscopes x-forwarded-access-token. Platform also adds iam.* defaults.
+      # Ref: https://docs.databricks.com/aws/en/dev-tools/databricks-apps/auth#scope-based-security-and-privilege-escalation
+      # If serving/chat returns 403, expand this list using ``endpoint_required_scopes`` from the API error
+      # body (backend mirrors Databricks e2e chatbot template serving metadata). User auth for agents:
+      # https://docs.databricks.com/aws/en/generative-ai/agent-framework/chat-app#enable-user-authorization
+      # Requires workspace admin enablement of user authorization (preview); restart app after scope changes.
+      # ``jobs`` is not accepted as a user_api_scopes value by the Apps API. Job run/poll uses the app
+      # service principal (DATABRICKS_CLIENT_*) via get_job_workspace_client; grant the job under resources.
+      user_api_scopes:
+        - sql
+        - files.files
+        - serving.serving-endpoints
+      resources:
+        - name: documents_volume
+          uc_securable:
+            securable_type: VOLUME
+            securable_full_name: ${var.documents_volume_uc_name}
+            permission: WRITE_VOLUME
+        - name: app_sql_warehouse
+          sql_warehouse:
+            id: ${var.sql_warehouse_id}
+            permission: CAN_USE
+        - name: app_processing_job
+          job:
+            id: ${var.processing_job_id}
+            permission: CAN_MANAGE_RUN
+        - name: app_agent_endpoint
+          serving_endpoint:
+            name: ${var.agent_serving_endpoint_name}
+            permission: CAN_QUERY
+        - name: processed_table
+          uc_securable:
+            securable_type: TABLE
+            securable_full_name: ${var.processed_table_uc_name}
+            permission: SELECT
 
 artifacts:
   app:

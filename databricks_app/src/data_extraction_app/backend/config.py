@@ -1,9 +1,9 @@
 """All configurable values.
 
-Names match ``resources/bundle_app.yml`` ``config.env`` (after ``databricks bundle deploy``) and/or
+Names match ``databricks.yml`` app ``config.env`` (after ``databricks bundle deploy``) and/or
 ``.build/app.yml`` ``env`` (from repo ``app.yml`` via ``apx build``) — this module reads them with
-:func:`os.getenv`. Declare ``variables`` in ``databricks.yml`` *before* ``include:`` so ``${var.*}`` in
-the bundle app YAML resolves.
+:func:`os.getenv`. Declare ``variables`` in ``databricks.yml`` *before* ``resources`` so ``${var.*}`` in
+the app definition resolves.
 
 For local runs, use ``databricks_app/.env`` (same keys) or export variables in the shell.
 """
@@ -26,7 +26,7 @@ if TYPE_CHECKING:
 # Same as Flask: user_token = request.headers.get('x-forwarded-access-token')
 FORWARDED_ACCESS_TOKEN_HEADER = "x-forwarded-access-token"
 
-# Env keys set in resources/bundle_app.yml (keep in sync when adding vars there).
+# Env keys set in databricks.yml app config.env (keep in sync when adding vars there).
 ENV_DATABRICKS_HOST = "DATABRICKS_HOST"
 ENV_DATA_EXTRACTION_HOST = "DATA_EXTRACTION_HOST"
 ENV_FEVM_TOKEN = "FEVM_TOKEN"
@@ -117,7 +117,7 @@ class AppConfig(BaseModel):
     @classmethod
     def from_environ(cls) -> AppConfig:
         """
-        Build config from ``os.environ`` (after optional ``.env`` load). Keys match ``resources/bundle_app.yml``.
+        Build config from ``os.environ`` (after optional ``.env`` load). Keys match ``databricks.yml`` app env.
         """
         _load_dotenv_if_present()
         return cls(
