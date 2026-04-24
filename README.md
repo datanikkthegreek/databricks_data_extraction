@@ -26,7 +26,7 @@ All those elements are set-up and deployed with this solution by following the b
 
 Architecture
 
-![Architecture](docs/images/architecture.png)
+![Architecture](docs/images/Architecture.png)
 
 This guide covers deploying the **Databricks Asset Bundle** under [`databricks_etl/`](databricks_etl/) (Spark Declarative pipelines and jobs including a Supervisor Agent).
 

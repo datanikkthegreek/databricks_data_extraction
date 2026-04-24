@@ -7,6 +7,6 @@ env:
   - name: VOLUME_PATH
     value: "/Volumes/nikks_fevm_workspace_7405607030687545/test1/documents/"
   - name: AI_EXTRACT_PROCESSED_TABLE
-    value: "nikks_fevm_workspace_7405607030687545.test1.extract_7_productmanuals_processed"
+    value: "nikks_fevm_workspace_7405607030687545.test1.extract_8_productmanuals_processed"
   - name: AGENT_ENDPOINT
     value: "mas-7dfd5937-endpoint"

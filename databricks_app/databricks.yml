@@ -7,7 +7,7 @@ bundle:
 variables:
   app_name_prefix:
     description: Prefix for the deployed Databricks App name only (not bundle.name).
-    default: extract-7
+    default: extract-8
 
 resources:
   apps:
