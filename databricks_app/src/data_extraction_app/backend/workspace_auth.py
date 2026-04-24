@@ -14,7 +14,6 @@ from .config import (
     ENV_DATABRICKS_HOST,
     ENV_FEVM_TOKEN,
     FORWARDED_ACCESS_TOKEN_HEADER,
-    _DEFAULT_DATABRICKS_HOST,
 )
 
 
@@ -123,7 +122,6 @@ def get_user_workspace_client(
         (override_host or "").strip(),
         os.getenv(ENV_DATABRICKS_HOST, "") or "",
         os.getenv(ENV_DATA_EXTRACTION_HOST, "") or "",
-        _DEFAULT_DATABRICKS_HOST,
     )
     if not host:
         raise ValueError("DATABRICKS_HOST / DATA_EXTRACTION_HOST is not configured.")

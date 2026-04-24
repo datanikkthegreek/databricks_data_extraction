@@ -1,9 +1,7 @@
 # Process + env for APX: copied into `.build/app.yml` by `uv run apx build`.
 #
-# - `value_from` (UC volume, table, serving endpoint) only works on the app resource in
-#   `databricks.yml` (`resources.apps.*`) + `databricks bundle deploy` — not here. Use plain `value` literals below
-#   as a fallback so `os.getenv` works from the artifact when API-injected env is missing.
-# - Keep these literals aligned with `databricks.yml` → `variables` defaults when you change them.
+# Keep ``env`` values aligned with ``databricks.yml`` → ``variables`` defaults and ``config.env`` keys.
+# Deployed Apps get env from the bundle only; this file supplies defaults when running from ``.build`` locally.
 command: ["uvicorn", "data_extraction_app.backend.app:app", "--workers", "2"]
 env:
   - name: DATABRICKS_HOST
@@ -18,7 +16,3 @@ env:
     value: "nikks_fevm_workspace_7405607030687545.test1.extract_7_productmanuals_processed"
   - name: DATA_EXTRACTION_AGENT_ENDPOINT
     value: "mas-7dfd5937-endpoint"
-  - name: GENIE_SPACE_ID
-    value: ""
-  - name: DATA_EXTRACTION_KNOWLEDGE_ASSISTANT_ENDPOINT
-    value: "ka-795868f8-endpoint"

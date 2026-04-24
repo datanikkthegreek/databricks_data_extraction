@@ -36,8 +36,6 @@ ENV_PROCESSING_JOB_ID = "DATA_EXTRACTION_PROCESSING_JOB_ID"
 ENV_APP_AI_QUERY_TABLE = "DATA_EXTRACTION_APP_AI_QUERY_TABLE"
 ENV_AGENT_ENDPOINT = "DATA_EXTRACTION_AGENT_ENDPOINT"
 
-_DEFAULT_DATABRICKS_HOST = "https://adb-7405607030687545.5.azuredatabricks.net"
-
 _bundle_root = Path(__file__).resolve().parent.parent.parent.parent
 _env_file = _bundle_root / ".env"
 
@@ -116,11 +114,18 @@ class AppConfig(BaseModel):
     @classmethod
     def from_environ(cls) -> AppConfig:
         """
-        Build config from ``os.environ`` (after optional ``.env`` load). Keys match ``databricks.yml`` app env.
+        Build config from ``os.environ`` (after optional ``.env`` load). Keys match ``databricks.yml`` app
+        ``config.env`` and ``app.yml`` (APX) — no workspace defaults in code; set host via env or startup fails.
         """
         _load_dotenv_if_present()
+        host = _getenv_any(ENV_DATABRICKS_HOST, ENV_DATA_EXTRACTION_HOST, default="")
+        if not host.strip():
+            raise ValueError(
+                "DATABRICKS_HOST / DATA_EXTRACTION_HOST is not set. "
+                "Configure ``databricks.yml`` variables + ``config.env`` for Apps, or ``app.yml`` / ``.env`` for local."
+            )
         return cls(
-            host=_getenv_any(ENV_DATABRICKS_HOST, ENV_DATA_EXTRACTION_HOST, default=_DEFAULT_DATABRICKS_HOST),
+            host=host,
             token=_getenv_any(ENV_FEVM_TOKEN, ENV_DATA_EXTRACTION_TOKEN),
             warehouse_http_path=os.getenv(ENV_WAREHOUSE_HTTP_PATH, "") or "",
             volume_path=os.getenv(ENV_VOLUME_PATH, "") or "",

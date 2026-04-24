@@ -25,7 +25,7 @@ How the `/api/chat` route authenticates to the Databricks agent endpoint (OBO on
 
 ## Requirements for 502 to go away
 
-- The **identity** behind the token (the signed-in user, or the PAT owner when local) must have **CAN_QUERY** on the agent endpoint (e.g. `mas-…-endpoint`).
+- The **identity** behind the token (the signed-in user, or the PAT owner when local) must have **CAN_QUERY** on the agent endpoint named in `DATA_EXTRACTION_AGENT_ENDPOINT` (`databricks.yml` / `app.yml`).
 - For a Multi-Agent Supervisor (MAS), the same permission is needed on any **underlying agent** endpoints the MAS calls (see [Databricks Agent Chat Template](https://github.com/databricks/app-templates/blob/main/e2e-chatbot-app-next/README.md)).
 
 ## Seeing the real error when you get 502
