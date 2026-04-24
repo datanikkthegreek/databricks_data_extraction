@@ -281,7 +281,7 @@ def trigger_job_run(
         raise HTTPException(
             status_code=400,
             detail=(
-                "processing_job_id is not set. Configure PROCESSING_JOB_ID "
+                "processing_job_id is not set. Configure JOB_ID "
                 "(bundle app config.env / workspace app settings) to the numeric Databricks job ID."
             ),
         )

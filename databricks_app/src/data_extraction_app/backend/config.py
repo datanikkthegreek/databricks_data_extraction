@@ -33,8 +33,8 @@ ENV_DATA_EXTRACTION_TOKEN = "DATA_EXTRACTION_TOKEN"
 ENV_WAREHOUSE_HTTP_PATH = "DATA_EXTRACTION_WAREHOUSE_HTTP_PATH"
 ENV_WAREHOUSE_ID = "WAREHOUSE_ID"
 ENV_VOLUME_PATH = "VOLUME_PATH"
-ENV_PROCESSING_JOB_ID = "PROCESSING_JOB_ID"
-ENV_APP_AI_QUERY_TABLE = "APP_AI_QUERY_TABLE"
+ENV_JOB_ID = "JOB_ID"
+ENV_AI_EXTRACT_PROCESSED_TABLE = "AI_EXTRACT_PROCESSED_TABLE"
 ENV_AGENT_ENDPOINT = "AGENT_ENDPOINT"
 
 _bundle_root = Path(__file__).resolve().parent.parent.parent.parent
@@ -116,10 +116,10 @@ class AppConfig(BaseModel):
     token: str = Field(default="", description="Fallback PAT when x-forwarded-access-token is absent")
     warehouse_http_path: str = Field(default="", description="SQL Warehouse HTTP path")
     volume_path: str = Field(default="", description="Volume path for PDF storage")
-    processing_job_id: str = Field(default="", description="Job ID for Execute processing")
+    processing_job_id: str = Field(default="", description="Job ID for Execute processing; env ``JOB_ID``")
     app_ai_query_table: str = Field(
         default="",
-        description="Full table name (catalog.schema.table) for AI query results",
+        description="Full table name (catalog.schema.table); env ``AI_EXTRACT_PROCESSED_TABLE``",
     )
     agent_endpoint: str = Field(default="", description="Databricks agent endpoint name for chat")
 
@@ -141,8 +141,8 @@ class AppConfig(BaseModel):
             token=_getenv_any(ENV_FEVM_TOKEN, ENV_DATA_EXTRACTION_TOKEN),
             warehouse_http_path=_warehouse_http_path_from_environ(),
             volume_path=os.getenv(ENV_VOLUME_PATH, "") or "",
-            processing_job_id=os.getenv(ENV_PROCESSING_JOB_ID, "") or "",
-            app_ai_query_table=os.getenv(ENV_APP_AI_QUERY_TABLE, "") or "",
+            processing_job_id=os.getenv(ENV_JOB_ID, "") or "",
+            app_ai_query_table=os.getenv(ENV_AI_EXTRACT_PROCESSED_TABLE, "") or "",
             agent_endpoint=os.getenv(ENV_AGENT_ENDPOINT, "") or "",
         )
 
