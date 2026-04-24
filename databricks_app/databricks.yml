@@ -27,17 +27,6 @@ variables:
   agent_serving_endpoint_name:
     description: Model serving / agent endpoint name
     default: "mas-7dfd5937-endpoint"
-  genie_space_id:
-    description: >
-      Genie space UUID (required). Use the space id from the Genie API or workspace UI — not the display title alone.
-      See https://docs.databricks.com/aws/en/dev-tools/databricks-apps/genie
-    default: "01f13e2547781d78adf5e2d322af3a5a"
-  genie_space_name:
-    description: Genie space name (bundle required field; often matches the space title shown in Genie)
-    default: "Genie space"
-  knowledge_assistant_endpoint_name:
-    description: Knowledge Assistant model serving endpoint name
-    default: "ka-795868f8-endpoint"
   processed_table_uc_name:
     description: UC full name of the processed manuals table for AI/SQL queries
     default: nikks_fevm_workspace_7405607030687545.test1.extract_7_productmanuals_processed
@@ -48,8 +37,8 @@ variables:
     description: Workspace URL (DATABRICKS_HOST); override per target if needed
     default: "https://adb-7405607030687545.5.azuredatabricks.net"
 
-# Databricks app: ${var.*} is substituted at `databricks bundle deploy`. value_from names refer to entries under
-# resources.apps.*.resources. Fallback literals for local / artifact-only runs: see `app.yml`.
+# Databricks app: ${var.*} is substituted at `databricks bundle deploy`. ``value_from`` names refer to entries under
+# ``resources.apps.*.resources``. App env is defined only here (``config.env``); local dev uses ``.env`` / shell.
 resources:
   apps:
     data-extraction-app9:
@@ -69,6 +58,21 @@ resources:
         - files.files
         - serving.serving-endpoints
         - dashboards.genie
+      config:
+        # Same logical keys as former ``app.yml`` ``env``; single source for deployed Apps compute.
+        env:
+          - name: DATABRICKS_HOST
+            value: "${var.databricks_host}"
+          - name: DATA_EXTRACTION_VOLUME_PATH
+            value_from: documents_volume
+          - name: DATA_EXTRACTION_WAREHOUSE_HTTP_PATH
+            value: "/sql/1.0/warehouses/${var.sql_warehouse_id}"
+          - name: DATA_EXTRACTION_PROCESSING_JOB_ID
+            value: "${var.processing_job_id}"
+          - name: DATA_EXTRACTION_APP_AI_QUERY_TABLE
+            value_from: processed_table
+          - name: DATA_EXTRACTION_AGENT_ENDPOINT
+            value_from: app_agent_endpoint
       resources:
         - name: documents_volume
           uc_securable:
@@ -86,15 +90,6 @@ resources:
         - name: app_agent_endpoint
           serving_endpoint:
             name: ${var.agent_serving_endpoint_name}
-            permission: CAN_QUERY
-        - name: underlying_genie_space
-          genie_space:
-            name: ${var.genie_space_name}
-            space_id: ${var.genie_space_id}
-            permission: CAN_RUN
-        - name: knowledge_assistant_endpoint
-          serving_endpoint:
-            name: ${var.knowledge_assistant_endpoint_name}
             permission: CAN_QUERY
         - name: processed_table
           uc_securable:

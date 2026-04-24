@@ -1,9 +1,8 @@
 """All configurable values.
 
-Names match ``databricks.yml`` app ``config.env`` (after ``databricks bundle deploy``) and/or
-``.build/app.yml`` ``env`` (from repo ``app.yml`` via ``apx build``) — this module reads them with
-:func:`os.getenv`. Declare ``variables`` in ``databricks.yml`` *before* ``resources`` so ``${var.*}`` in
-the app definition resolves.
+Names match ``databricks.yml`` app ``config.env`` (after ``databricks bundle deploy``). For local runs,
+:func:`os.getenv` reads ``databricks_app/.env`` or the process environment. Declare ``variables`` in
+``databricks.yml`` *before* ``resources`` so ``${var.*}`` in the app definition resolves.
 
 For local runs, use ``databricks_app/.env`` (same keys) or export variables in the shell.
 """
