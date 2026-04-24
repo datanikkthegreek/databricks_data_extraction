@@ -101,7 +101,7 @@ def _http_exception_from_agent_failure(
             "error_code": exc.error_code,
             "error_type": type(exc).__name__,
             "hint": (
-                "Check that DATA_EXTRACTION_AGENT_ENDPOINT names a serving endpoint in this workspace, "
+                "Check that AGENT_ENDPOINT names a serving endpoint in this workspace, "
                 "the user token has required OAuth scopes (e.g. model-serving), and the user has CAN_QUERY on the endpoint."
             ),
         }
@@ -281,7 +281,7 @@ def trigger_job_run(
         raise HTTPException(
             status_code=400,
             detail=(
-                "processing_job_id is not set. Configure DATA_EXTRACTION_PROCESSING_JOB_ID "
+                "processing_job_id is not set. Configure PROCESSING_JOB_ID "
                 "(bundle app config.env / workspace app settings) to the numeric Databricks job ID."
             ),
         )

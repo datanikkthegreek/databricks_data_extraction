@@ -96,7 +96,7 @@ def chat_supervisor_query(
     if not endpoint:
         raise HTTPException(
             status_code=503,
-            detail="DATA_EXTRACTION_AGENT_ENDPOINT / config.agent_endpoint is not set.",
+            detail="AGENT_ENDPOINT / config.agent_endpoint is not set.",
         )
     try:
         user_client = get_user_workspace_client(request, override_host=config.host)
@@ -127,7 +127,7 @@ def chat_supervisor_query(
 async def invoke_handler(request: ResponsesAgentRequest) -> ResponsesAgentResponse:
     endpoint = get_supervisor_endpoint_name()
     if not endpoint:
-        raise ValueError("DATA_EXTRACTION_AGENT_ENDPOINT is not set in the environment.")
+        raise ValueError("AGENT_ENDPOINT is not set in the environment.")
 
     user_client = get_user_workspace_client()
     payload = [m.model_dump(mode="json", exclude_none=True) for m in request.input]

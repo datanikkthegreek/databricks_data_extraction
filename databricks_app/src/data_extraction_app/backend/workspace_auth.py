@@ -130,5 +130,5 @@ def get_user_workspace_client(
 
 
 def get_supervisor_endpoint_name() -> str:
-    """Serving endpoint name from env (same as bundle ``DATA_EXTRACTION_AGENT_ENDPOINT``)."""
+    """Serving endpoint name from env (``AGENT_ENDPOINT`` / bundle)."""
     return (os.getenv(ENV_AGENT_ENDPOINT, "") or "").strip()
