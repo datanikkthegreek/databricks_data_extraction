@@ -1,58 +1,15 @@
 # Databricks asset bundle for Data Extraction App
 # See https://docs.databricks.com/dev-tools/bundles/index.html for documentation.
-#
-# App source vs bundle deploy:
-# - `databricks bundle deploy` syncs files to `${workspace.file_path}` (default: .../.bundle/<bundle.name>/<target>/files/)
-#   including `.build/`, and creates/updates the App resource. It does not push that tree onto app compute by itself.
-# - The UI may show: wait for compute to be ready (often 2–3 minutes) before deploying source — that is expected.
-# - After compute is ready, either:
-#     databricks bundle run data-extraction-app7 -t dev
-#   or (equivalent to what worked for you; app `name` must match `resources.apps.*.name`):
-#     databricks apps deploy data-extraction-app7 --source-code-path "${workspace.file_path}/.build"
-#   At the shell, `${workspace.file_path}` is not expanded — use the real path from the workspace file browser, e.g.
-#   /Workspace/Users/<you>/.bundle/data-extraction-app7/dev/files/.build
-#   Important: the middle folder must match this file's `bundle.name` (do not reuse an old .../app5/... path).
 # See: https://docs.databricks.com/aws/en/dev-tools/bundles/apps-tutorial
 bundle:
   name: data-extraction-app9
 
-# Declare variables before `resources` so `${var.*}` in the app definition resolves during bundle processing.
-variables:
-  documents_volume_uc_name:
-    description: UC full name of the documents volume for app uploads (WRITE_VOLUME for the app's service principal)
-    default: nikks_fevm_workspace_7405607030687545.test1.documents
-  sql_warehouse_id:
-    description: SQL warehouse ID for app query access
-    default: "4615730c28d25332"
-  agent_serving_endpoint_name:
-    description: Model serving / agent endpoint name
-    default: "mas-7dfd5937-endpoint"
-  processed_table_uc_name:
-    description: UC full name of the processed manuals table for AI/SQL queries
-    default: nikks_fevm_workspace_7405607030687545.test1.extract_7_productmanuals_processed
-  processing_job_id:
-    description: Job ID for PDF processing (run now)
-    default: "723284732123840"
-  databricks_host:
-    description: Workspace URL (DATABRICKS_HOST); override per target if needed
-    default: "https://adb-7405607030687545.5.azuredatabricks.net"
-
-# Databricks app: ${var.*} is substituted at `databricks bundle deploy`. ``value_from`` names refer to entries under
-# ``resources.apps.*.resources``. App env is defined only here (``config.env``); local dev uses ``.env`` / shell.
 resources:
   apps:
     data-extraction-app9:
       name: "data-extraction-app9"
       description: "Data Extraction App with PDF upload"
       source_code_path: ${workspace.file_path}/.build
-      # OBO (user authorization): downscopes x-forwarded-access-token. Platform also adds iam.* defaults.
-      # Ref: https://docs.databricks.com/aws/en/dev-tools/databricks-apps/auth#scope-based-security-and-privilege-escalation
-      # If serving/chat returns 403, expand this list using ``endpoint_required_scopes`` from the API error
-      # body (backend mirrors Databricks e2e chatbot template serving metadata). User auth for agents:
-      # https://docs.databricks.com/aws/en/generative-ai/agent-framework/chat-app#enable-user-authorization
-      # Requires workspace admin enablement of user authorization (preview); restart app after scope changes.
-      # ``jobs`` is not accepted as a user_api_scopes value by the Apps API. Job run/poll uses the app
-      # service principal (DATABRICKS_CLIENT_*) via get_job_workspace_client; grant the job under resources.
       user_api_scopes:
         - sql
         - files.files
@@ -63,8 +20,6 @@ artifacts:
   app:
     build: uv run apx build
 
-# APX writes `.build/.gitignore` with `*` so `git check-ignore` skips the whole tree; bundle sync
-# respects those rules unless we explicitly include the build output (see libs/git in databricks/cli).
 sync:
   include:
     - ".build/**"

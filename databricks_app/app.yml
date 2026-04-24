@@ -1,7 +1,3 @@
-# Process + env for APX: copied into `.build/app.yml` by `uv run apx build`.
-#
-# Keep ``env`` values aligned with ``databricks.yml`` → ``variables`` defaults and ``config.env`` keys.
-# Deployed Apps get env from the bundle only; this file supplies defaults when running from ``.build`` locally.
 command: ["uvicorn", "data_extraction_app.backend.app:app", "--workers", "2"]
 env:
   - name: DATABRICKS_HOST
