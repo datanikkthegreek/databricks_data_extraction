@@ -1,7 +1,5 @@
 command: ["uvicorn", "data_extraction_app.backend.app:app", "--workers", "2"]
 env:
-  - name: DATABRICKS_HOST
-    value: "https://adb-7405607030687545.5.azuredatabricks.net"
   - name: DATA_EXTRACTION_WAREHOUSE_HTTP_PATH
     value: "/sql/1.0/warehouses/4615730c28d25332"
   - name: DATA_EXTRACTION_PROCESSING_JOB_ID
