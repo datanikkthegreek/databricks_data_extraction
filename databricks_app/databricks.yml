@@ -2,12 +2,17 @@
 # See https://docs.databricks.com/dev-tools/bundles/index.html for documentation.
 # See: https://docs.databricks.com/aws/en/dev-tools/bundles/apps-tutorial
 bundle:
-  name: data-extraction-app9
+  name: data-extraction-app
+
+variables:
+  app_name_prefix:
+    description: Prefix for the deployed Databricks App name only (not bundle.name).
+    default: extract-7
 
 resources:
   apps:
-    data-extraction-app9:
-      name: "data-extraction-app9"
+    data-extraction-app:
+      name: "${var.app_name_prefix}-data-extraction-app"
       description: "Data Extraction App with PDF upload"
       source_code_path: ${workspace.file_path}/.build
       user_api_scopes:
