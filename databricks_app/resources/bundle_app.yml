@@ -17,7 +17,6 @@ resources:
         - sql
         - files.files
         - serving.serving-endpoints
-        - model-serving
       config:
         env:
           - name: DATABRICKS_HOST
