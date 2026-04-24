@@ -69,24 +69,6 @@ resources:
         - files.files
         - serving.serving-endpoints
         - dashboards.genie
-      config:
-        env:
-          - name: DATABRICKS_HOST
-            value: "${var.databricks_host}"
-          - name: DATA_EXTRACTION_VOLUME_PATH
-            value_from: documents_volume
-          - name: DATA_EXTRACTION_WAREHOUSE_HTTP_PATH
-            value: "/sql/1.0/warehouses/${var.sql_warehouse_id}"
-          - name: DATA_EXTRACTION_PROCESSING_JOB_ID
-            value: "${var.processing_job_id}"
-          - name: DATA_EXTRACTION_APP_AI_QUERY_TABLE
-            value_from: processed_table
-          - name: DATA_EXTRACTION_AGENT_ENDPOINT
-            value_from: app_agent_endpoint
-          - name: GENIE_SPACE_ID
-            value_from: underlying_genie_space
-          - name: DATA_EXTRACTION_KNOWLEDGE_ASSISTANT_ENDPOINT
-            value_from: knowledge_assistant_endpoint
       resources:
         - name: documents_volume
           uc_securable:
