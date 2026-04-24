@@ -31,6 +31,7 @@ ENV_DATA_EXTRACTION_HOST = "DATA_EXTRACTION_HOST"
 ENV_FEVM_TOKEN = "FEVM_TOKEN"
 ENV_DATA_EXTRACTION_TOKEN = "DATA_EXTRACTION_TOKEN"
 ENV_WAREHOUSE_HTTP_PATH = "DATA_EXTRACTION_WAREHOUSE_HTTP_PATH"
+ENV_WAREHOUSE_ID = "WAREHOUSE_ID"
 ENV_VOLUME_PATH = "DATA_EXTRACTION_VOLUME_PATH"
 ENV_PROCESSING_JOB_ID = "DATA_EXTRACTION_PROCESSING_JOB_ID"
 ENV_APP_AI_QUERY_TABLE = "DATA_EXTRACTION_APP_AI_QUERY_TABLE"
@@ -44,6 +45,17 @@ def _load_dotenv_if_present() -> None:
     """Load ``databricks_app/.env`` without overriding keys already set (e.g. on Apps)."""
     if _env_file.is_file():
         load_dotenv(_env_file, override=False)
+
+
+def _warehouse_http_path_from_environ() -> str:
+    """Use explicit warehouse HTTP path if set; else ``/sql/1.0/warehouses/{WAREHOUSE_ID}``."""
+    path = (os.getenv(ENV_WAREHOUSE_HTTP_PATH, "") or "").strip()
+    if path:
+        return path
+    wid = (os.getenv(ENV_WAREHOUSE_ID, "") or "").strip()
+    if wid:
+        return f"/sql/1.0/warehouses/{wid}"
+    return ""
 
 
 def _getenv_any(*keys: str, default: str = "") -> str:
@@ -127,7 +139,7 @@ class AppConfig(BaseModel):
         return cls(
             host=host,
             token=_getenv_any(ENV_FEVM_TOKEN, ENV_DATA_EXTRACTION_TOKEN),
-            warehouse_http_path=os.getenv(ENV_WAREHOUSE_HTTP_PATH, "") or "",
+            warehouse_http_path=_warehouse_http_path_from_environ(),
             volume_path=os.getenv(ENV_VOLUME_PATH, "") or "",
             processing_job_id=os.getenv(ENV_PROCESSING_JOB_ID, "") or "",
             app_ai_query_table=os.getenv(ENV_APP_AI_QUERY_TABLE, "") or "",
