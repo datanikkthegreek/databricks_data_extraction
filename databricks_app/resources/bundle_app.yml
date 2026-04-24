@@ -10,6 +10,9 @@ resources:
       source_code_path: ${workspace.file_path}/.build
       # OBO (user authorization): downscopes x-forwarded-access-token. Platform also adds iam.* defaults.
       # Ref: https://docs.databricks.com/aws/en/dev-tools/databricks-apps/auth#scope-based-security-and-privilege-escalation
+      # If serving/chat returns 403, expand this list using ``endpoint_required_scopes`` from the API error
+      # body (backend mirrors Databricks e2e chatbot template serving metadata). User auth for agents:
+      # https://docs.databricks.com/aws/en/generative-ai/agent-framework/chat-app#enable-user-authorization
       # Requires workspace admin enablement of user authorization (preview); restart app after scope changes.
       # ``jobs`` is not accepted as a user_api_scopes value by the Apps API. Job run/poll uses the app
       # service principal (DATABRICKS_CLIENT_*) via get_job_workspace_client; grant the job under resources.

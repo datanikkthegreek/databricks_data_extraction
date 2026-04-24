@@ -2,7 +2,7 @@ import base64
 import io
 import traceback
 from datetime import datetime
-from typing import Annotated
+from typing import Annotated, Any
 
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.errors import DatabricksError
@@ -11,7 +11,13 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 
 from .._metadata import api_prefix
 from .agent_server.agent import chat_supervisor_query
-from .config import get_access_token_diagnostic
+from .config import AppConfig, get_access_token_diagnostic
+from .serving_endpoint_metadata import (
+    log_obo_scope_hint,
+    obo_details_for_403_detail,
+    get_serving_endpoint_obo_details,
+)
+from .workspace_auth import get_supervisor_endpoint_name
 from .dependencies import ConfigDep, get_job_workspace_client, get_obo_ws, get_volume_obo_ws, get_volume_token
 from .logger import logger
 from .models import (
@@ -78,23 +84,39 @@ def _http_status_for_databricks_error(e: DatabricksError) -> int | None:
     return None
 
 
-def _http_exception_from_agent_failure(exc: Exception) -> HTTPException:
+def _http_exception_from_agent_failure(
+    exc: Exception,
+    *,
+    config: AppConfig | None = None,
+    request: Request | None = None,
+    agent_endpoint_name: str | None = None,
+) -> HTTPException:
     """Structured error for /api/chat when ``serving_endpoints.query`` fails."""
     if isinstance(exc, HTTPException):
         return exc
     if isinstance(exc, DatabricksError):
         status = _http_status_for_databricks_error(exc) or 502
+        detail: dict[str, Any] = {
+            "message": str(exc),
+            "error_code": exc.error_code,
+            "error_type": type(exc).__name__,
+            "hint": (
+                "Check that DATA_EXTRACTION_AGENT_ENDPOINT names a serving endpoint in this workspace, "
+                "the user token has required OAuth scopes (e.g. model-serving), and the user has CAN_QUERY on the endpoint."
+            ),
+        }
+        if (
+            status == 403
+            and config is not None
+            and (agent_endpoint_name or "").strip()
+        ):
+            name = (agent_endpoint_name or "").strip()
+            obo = get_serving_endpoint_obo_details(name, config=config, request=request)
+            log_obo_scope_hint(name, obo)
+            detail.update(obo_details_for_403_detail(obo))
         return HTTPException(
             status_code=status,
-            detail={
-                "message": str(exc),
-                "error_code": exc.error_code,
-                "error_type": type(exc).__name__,
-                "hint": (
-                    "Check that DATA_EXTRACTION_AGENT_ENDPOINT names a serving endpoint in this workspace, "
-                    "the user token has required OAuth scopes (e.g. model-serving), and the user has CAN_QUERY on the endpoint."
-                ),
-            },
+            detail=detail,
         )
     return HTTPException(
         status_code=502,
@@ -449,6 +471,7 @@ def chat(
         raise HTTPException(status_code=400, detail="messages cannot be empty")
     api_messages = [{"role": m.role, "content": m.content} for m in payload.messages]
 
+    endpoint = (config.agent_endpoint or get_supervisor_endpoint_name() or "").strip()
     try:
         msg_out = chat_supervisor_query(request, config, api_messages)
         return ChatOut(message=msg_out)
@@ -459,4 +482,9 @@ def chat(
             e,
             exc_info=True,
         )
-        raise _http_exception_from_agent_failure(e) from e
+        raise _http_exception_from_agent_failure(
+            e,
+            config=config,
+            request=request,
+            agent_endpoint_name=endpoint or None,
+        ) from e

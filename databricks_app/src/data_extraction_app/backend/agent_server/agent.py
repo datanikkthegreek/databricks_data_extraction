@@ -10,12 +10,14 @@ from __future__ import annotations
 import uuid
 from typing import Any
 
+from databricks.sdk.errors import DatabricksError
 from fastapi import HTTPException, Request
 from mlflow.genai.agent_server import invoke
 from mlflow.types.responses import ResponsesAgentRequest, ResponsesAgentResponse
 
 from ..agent_output import format_agent_response_for_user
 from ..config import AppConfig
+from ..serving_endpoint_metadata import log_serving_forbidden_metadata
 from ..models import ChatMessageOut
 from ..logger import logger
 from ..workspace_auth import (
@@ -126,13 +128,22 @@ async def invoke_handler(request: ResponsesAgentRequest) -> ResponsesAgentRespon
     user_client = get_user_workspace_client()
     payload = [m.model_dump(mode="json", exclude_none=True) for m in request.input]
     try:
-        resp = user_client.serving_endpoints.query(name=endpoint, input=payload)
-    except Exception as first:
-        logger.warning(
-            "[AGENT] user_client.serving_endpoints.query(input=...) failed (%s: %s); retrying with inputs={'input': ...}",
-            type(first).__name__,
-            first,
+        try:
+            resp = user_client.serving_endpoints.query(name=endpoint, input=payload)
+        except Exception as first:
+            logger.warning(
+                "[AGENT] user_client.serving_endpoints.query(input=...) failed (%s: %s); retrying with inputs={'input': ...}",
+                type(first).__name__,
+                first,
+            )
+            resp = user_client.serving_endpoints.query(name=endpoint, inputs={"input": payload})
+    except DatabricksError as e:
+        log_serving_forbidden_metadata(
+            e,
+            endpoint_name=endpoint,
+            config=AppConfig.from_environ(),
+            request=None,
         )
-        resp = user_client.serving_endpoints.query(name=endpoint, inputs={"input": payload})
+        raise
     output = _serving_response_to_output_items(resp)
     return ResponsesAgentResponse(output=output)
