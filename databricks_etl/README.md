@@ -23,15 +23,15 @@ CREATE SCHEMA IF NOT EXISTS <CATALOG>.<SCHEMA>;
 
 -- 2. Create the volume
 CREATE VOLUME IF NOT EXISTS <CATALOG>.<SCHEMA>.<VOLUME_NAME>;
+
+-- 3. Create the productmanuals subfolder inside the volume
+%python
+dbutils.fs.mkdirs("/Volumes/<CATALOG>/<SCHEMA>/<VOLUME_NAME>/productmanuals")
 ```
 
-Then upload your PDF files into the `productmanuals` subfolder inside the volume:
+Upload your PDF files into the subfolder via the Databricks UI: navigate to **Catalog → Volumes → `<VOLUME_NAME>` → Upload to this volume**.
 
-```
-/Volumes/<CATALOG>/<SCHEMA>/<VOLUME_NAME>/productmanuals/
-```
-
-> 💡 The pipeline reads from `{volume}/productmanuals` — this subfolder must exist and contain at least one `.pdf` file before running the job. Use the sample files from [`../productmanuals/`](../productmanuals/) to get started.
+> 💡 The pipeline reads from `{volume}/productmanuals` — this subfolder must contain at least one `.pdf` file before running the job. Use the sample files from [`../productmanuals/`](../productmanuals/) to get started.
 
 > **Bundle root is `databricks_etl/`**, not the repo root. Open or `cd` into this directory before running any bundle commands.
 
