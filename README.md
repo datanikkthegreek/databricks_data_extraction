@@ -18,11 +18,9 @@ Transform unstructured product manuals into structured, queryable data using **D
 
 ---
 
-## 🏗️ Architecture
+## 🔄 Pipeline Overview
 
-The diagram below shows the end-to-end flow — from raw PDFs through the extraction pipeline to the business-user interfaces on Databricks One.
-
-![Architecture](docs/images/Architecture.png)
+![PDF Processing Pipeline](docs/images/DataExtraction.png)
 
 ---
 
