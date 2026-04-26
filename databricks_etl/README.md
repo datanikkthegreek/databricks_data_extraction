@@ -1,6 +1,6 @@
 # 🔧 ETL Pipeline: Lakeflow Spark Declarative Pipeline + Jobs
 
-This bundle deploys the production **Intelligent Document Processing** pipeline — a Lakeflow Spark Declarative Pipeline (incremental, serverless) orchestrated by Lakeflow Jobs.
+This bundle deploys the production-grade **Intelligent Document Processing** pipeline — a Lakeflow Spark Declarative Pipeline (incremental, serverless) orchestrated by Lakeflow Jobs.
 
 **Pipeline steps:** Parse PDFs with `ai_parse_document` → Extract structured fields with `ai_extract` → Flatten into a typed Delta table → Evaluate quality with MLflow → Create Genie Space, Knowledge Assistant, and Supervisor Agent.
 
