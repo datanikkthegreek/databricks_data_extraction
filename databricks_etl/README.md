@@ -13,9 +13,25 @@ This bundle deploys the production-grade **Intelligent Document Processing** pip
 ## 🔧 Prerequisites
 
 - Databricks workspace with **Unity Catalog** enabled
-- A catalog, schema, and Unity Catalog volume where PDF files will land
 - A SQL warehouse (for Genie Space creation)
-- Sample PDFs uploaded to `{volume}/productmanuals` — use files from [`../productmanuals/`](../productmanuals/)
+
+Before deploying the bundle, create the required Unity Catalog objects and upload sample PDFs:
+
+```sql
+-- 1. Create schema (use an existing catalog or create a new one)
+CREATE SCHEMA IF NOT EXISTS <CATALOG>.<SCHEMA>;
+
+-- 2. Create the volume
+CREATE VOLUME IF NOT EXISTS <CATALOG>.<SCHEMA>.<VOLUME_NAME>;
+```
+
+Then upload your PDF files into the `productmanuals` subfolder inside the volume:
+
+```
+/Volumes/<CATALOG>/<SCHEMA>/<VOLUME_NAME>/productmanuals/
+```
+
+> 💡 The pipeline reads from `{volume}/productmanuals` — this subfolder must exist and contain at least one `.pdf` file before running the job. Use the sample files from [`../productmanuals/`](../productmanuals/) to get started.
 
 > **Bundle root is `databricks_etl/`**, not the repo root. Open or `cd` into this directory before running any bundle commands.
 
@@ -30,7 +46,7 @@ Set these in [`databricks.yml`](databricks.yml) before deploying:
 | `catalog` | Unity Catalog catalog |
 | `schema` | Schema (database) |
 | `table_prefix` | Prefix for all Delta table and job display names |
-| `volume` | UC volume path, e.g. `/Volumes/<CATALOG>/<SCHEMA>/<VOLUME_NAME>/` |
+| `volume` | UC volume root path — PDFs must be placed in the `productmanuals` subfolder inside it, e.g. `/Volumes/<CATALOG>/<SCHEMA>/<VOLUME_NAME>/` |
 | `warehouse_id` | SQL warehouse ID for Genie Space creation |
 | `evaluation_experiment` | MLflow experiment path for extraction quality evaluation (defaults to `/Shared/<table_prefix>_product_manuals_extraction_eval`) |
 
