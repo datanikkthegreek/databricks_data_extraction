@@ -59,7 +59,7 @@ Transform unstructured product manuals into structured, queryable data using **D
 
 The demo notebook provides a self-contained introduction to the solution. It covers catalog and volume creation, PDF parsing with `ai_parse_document`, structured field extraction with `ai_extract`, result flattening into a typed Delta table, and extraction quality evaluation with MLflow — all executable in sequence without any pipeline infrastructure.
 
-**Prerequisites:** Unity Catalog enabled · Serverless compute or DBR 15.4 ML or later
+**Prerequisites:** Unity Catalog enabled · Serverless compute or Databricks Runtime 17.3 ML or above
 
 ### ⚙️ ETL Pipeline — [`databricks_etl/`](databricks_etl/README.md)
 
