@@ -30,8 +30,9 @@ Set these in [`databricks.yml`](databricks.yml) before deploying:
 | `catalog` | Unity Catalog catalog |
 | `schema` | Schema (database) |
 | `table_prefix` | Prefix for all Delta table and job display names |
-| `volume` | UC volume path, e.g. `/Volumes/<catalog>/<schema>/<volume>/` |
+| `volume` | UC volume path, e.g. `/Volumes/<CATALOG>/<SCHEMA>/<VOLUME_NAME>/` |
 | `warehouse_id` | SQL warehouse ID for Genie Space creation |
+| `evaluation_experiment` | MLflow experiment path for extraction quality evaluation (defaults to `/Shared/<table_prefix>_product_manuals_extraction_eval`) |
 
 ---
 
@@ -61,10 +62,9 @@ Set these in [`databricks.yml`](databricks.yml) before deploying:
 
 ### Automatic file-arrival triggers
 
-Both jobs can trigger automatically when new files land on the volume. Uncomment the `trigger` block in the job YAMLs and redeploy:
+Both jobs can trigger automatically when new files land on the volume. Uncomment the `trigger` block in the job YAML and redeploy:
 
 - [`resources/extract_productmanuals.job.yml`](resources/extract_productmanuals.job.yml) — lines 10–13
-- [`resources/extract_invoices.job.yml`](resources/extract_invoices.job.yml) — lines 12–15
 
 ### Generating extraction schemas interactively
 
