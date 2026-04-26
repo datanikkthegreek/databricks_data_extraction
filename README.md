@@ -1,222 +1,207 @@
-**Editors:** Merve Karali and Nikolaos Servos
+# 🧠 Intelligent Document Processing: PDF → Structured Product Catalog
 
-The goal of this solution accelerator is to transform unstructured product manuals into structured, queryable data using Databricks Agent Bricks AI Functions, enabling organizations to build a complete document intelligence pipeline without custom model training or rigid templates. This solution addresses the challenge of extracting critical technical data—such as product specifications and component compatibility—from varying document formats and inconsistent vendor terminology, which is too slow and error-prone for manual processing.
+Transform unstructured product manuals into structured, queryable data using **Databricks Agent Bricks AI Functions** — no custom model training, no rigid templates.
 
-### End-to-End Architecture Summary
+**Authors:** Merve Karali and Nikolaos Servos
 
-The architecture is built as an incremental and production-ready **Lakeflow Spark Declarative Pipeline** on Databricks, orchestrated by **Lakeflow Jobs** and governed by **Unity Catalog**.
+> 📖 **Read the full blog post:** [Intelligent Document Processing for Data Extraction: Transforming Product Manuals into Actionable Insights](https://community.databricks.com/t5/technical-blog/intelligent-document-processing-for-data-extraction-transforming/ba-p/153847)
 
-The solution involves three main pipeline steps:
+---
 
-1.  **Parse PDFs with `ai_parse_document`**: Raw PDF manuals are read as binary files from a Unity Catalog Volume. The `ai_parse_document` function processes these files and returns a structured JSON output containing text, tables, figures, and layout metadata.
-2.  **Extract Structured Fields with `ai_extract` (v2)**: This function uses the parsed document and a declarative JSON schema (including types and descriptive field instructions) to extract key product specifications (e.g., manufacturer, model number, rated voltage). Prompt engineering is used here to steer the Large Language Model (LLM) toward specific values and terminology.
-3.  **Flatten and Type-Cast**: The JSON result from `ai_extract` is converted into a clean table with strongly typed columns and descriptive column comments, creating the final structured product catalog.
+## 💡 Why This Solution?
 
-**Quality Evaluation**
-The extraction quality is continuously measured using **MLflow 3 GenAI evaluation**, which employs both code-based scorers (checking completeness) and LLM-as-judge scorers (verifying language and validity).
+- **No training data required.** Define what to extract through a declarative schema and start processing new document types immediately.
+- **SQL-native, no infrastructure overhead.** The entire pipeline is expressed in streaming tables — no separate model endpoints or custom inference code.
+- **Incremental by default.** Streaming tables process only new documents on each run, making the pipeline production-ready from day one.
+- **End-to-end governance.** Unity Catalog governs PDFs, extracted tables, Genie Spaces, and Knowledge Assistants under one access control model.
+- **Measurable quality.** MLflow evaluation provides quantitative metrics to track extraction quality over time and catch regressions early.
 
-**Delivering Results to Business Users**
-The processed data is made accessible through complementary interfaces on **Databricks One**:
+---
 
-  * **Genie Space**: Allows users to query the structured product catalog using natural language, which is translated into SQL.
-  * **Knowledge Assistant**: Indexes the raw PDF manuals to provide cited, document-grounded answers for open-ended questions (e.g., safety instructions or troubleshooting steps).
-  * **Supervisor Agent**: Ties the Genie Space and Knowledge Assistant together into a unified interface, which can be surfaced to the end user via a **Databricks App**.
+## 🗂️ Directory Structure
 
-All those elements are set-up and deployed with this solution by following the below steps.
+```
+.
+├── demo/                          # ✅ Start here — self-contained demo notebook
+│   └── demo_notebook.ipynb
+├── databricks_etl/                # Production Lakeflow pipeline + Jobs (Asset Bundle)
+│   ├── databricks.yml
+│   ├── resources/                 # Job and pipeline definitions
+│   └── src/
+│       ├── transformations/       # Parse → Extract → Process (productmanuals & invoices)
+│       ├── evaluation/            # MLflow 3 GenAI evaluation
+│       ├── genie_space/           # Genie Space creation
+│       ├── knowledge_assistant/   # Knowledge Assistant creation
+│       └── supervisor_agent/      # Supervisor Agent creation
+├── databricks_app/                # FastAPI + React Databricks App (Asset Bundle)
+│   ├── databricks.yml
+│   └── app.yml
+├── productmanuals/                # Sample PDF product manuals
+└── docs/images/Architecture.png
+```
 
-Architecture
+---
+
+## 🧭 Suggested Usage
+
+| Path | Audience | Purpose |
+|------|----------|---------|
+| `demo/` | Anyone evaluating the solution | Run the full pipeline end-to-end in a single notebook |
+| `databricks_etl/` | Data engineers, production deployments | Incremental Lakeflow pipeline with Jobs orchestration |
+| `databricks_app/` | App developers | FastAPI + React UI for uploads, queries, and agent chat |
+
+---
+
+## 🏗️ Architecture
+
+The pipeline parses raw PDFs, extracts structured fields, evaluates quality, and exposes results through complementary business-user interfaces — all on a single platform.
 
 ![Architecture](docs/images/Architecture.png)
 
-This guide covers deploying the **Databricks Asset Bundle** under [`databricks_etl/`](databricks_etl/) (Spark Declarative pipelines and jobs including a Supervisor Agent).
+---
 
-**App deployment:** the FastAPI / apx app bundle lives under [`databricks_app/`](databricks_app/). **The app bundle is deployed only from your local machine** using the Databricks CLI, not from the workspace bundle UI. Follow **step 8** under [Local Deployment via CLI](#local-deployment-via-cli).
+## 🚀 Quick Start: Demo Notebook
 
-# Deployment from the Databricks Workspace UI
+The fastest way to experience the solution is the self-contained demo notebook. It requires no pipeline infrastructure — just a Databricks workspace with Unity Catalog.
 
-If you want to deploy via CLI from locally check the next Chapter
+**Prerequisites:** Unity Catalog enabled · DBR 14.3 ML or later · `CREATE CATALOG` privilege
 
-## 1. Clone the repository in a Git folder
+**Steps:**
 
-In Databricks, add a Git folder and clone:
+1. Clone this repository into a Databricks Git folder:
+   ```text
+   https://github.com/datanikkthegreek/databricks_data_extraction.git
+   ```
+2. Open [`demo/demo_notebook.ipynb`](demo/demo_notebook.ipynb).
+3. Edit the configuration cell (catalog, schema, volume, table prefix), upload sample PDFs from [`productmanuals/`](productmanuals/) to your volume, and run top to bottom.
 
-```text
-https://github.com/datanikkthegreek/databricks_data_extraction.git
-```
+The notebook walks through:
 
-**Bundle location in this repo:** the Declarative Automation Bundle (`databricks.yml`) lives under [`databricks_etl/`](databricks_etl/), not at the monorepo root. Databricks identifies a folder as a bundle when `databricks.yml` sits at the **root of that folder**—see [I have a bundle in a GitHub repository](https://docs.databricks.com/aws/en/dev-tools/bundles/workspace.html). After the clone appears in the workspace, **open the `databricks_etl` directory** as your bundle project (the directory that contains [`databricks_etl/databricks.yml`](databricks_etl/databricks.yml)). If your UI only attaches bundle tooling at the Git repo root, use the web terminal from step 1 and run bundle commands after `cd databricks_etl`, same as the CLI guide.
+| Step | What it does |
+|------|-------------|
+| 0 | Creates catalog, schema, and volume |
+| 1 | Parses PDFs with `ai_parse_document` |
+| 2 | Extracts 14 structured fields with `ai_extract` (v2) |
+| 3 | Flattens results into a typed Delta table |
+| 4 | Evaluates extraction quality with MLflow 3 GenAI evaluation |
 
-## 2. Unity Catalog: catalog, schema, volume, and sample data
+---
 
-1. In Databricks, create or choose a **catalog**, **schema**, and a **Unity Catalog volume** (managed or external) where ingestion files will live. See [What is Unity Catalog?](https://docs.databricks.com/en/data-governance/unity-catalog/index.html) and [Create and work with volumes](https://docs.databricks.com/en/volumes/index.html).
+## ⚙️ Full Pipeline Deployment
 
-2. Set the bundle `volume` variable (step 4) to the UC path prefix for that volume, in the form:  
-   `/Volumes/<catalog>/<schema>/<volume-name>/`  
-   (trailing slash is fine if it matches your `databricks.yml`.)
+The production pipeline is a **Databricks Asset Bundle** under [`databricks_etl/`](databricks_etl/) — a Lakeflow Spark Declarative Pipeline (incremental, serverless) orchestrated by Lakeflow Jobs.
 
-3. **Upload sample files** so pipeline paths exist:
-   - **Product manuals pipeline**: upload the contents of the repo folder [`productmanuals/`](productmanuals/) into **`{volume}/productmanuals`** on the volume (the pipeline reads `${volume}/productmanuals`).
-   - **Invoices pipeline** (if you run the invoices job): place files under **`{volume}/invoices`** (see `01_parsed.sql` in the invoices transformation).
+### Prerequisites
 
-## 3. Configure the bundle
+- Databricks workspace with Unity Catalog enabled
+- A catalog, schema, and Unity Catalog volume where PDF files will land
+- A SQL warehouse (for Genie Space creation)
+- Sample PDFs uploaded to `{volume}/productmanuals` (use files from [`productmanuals/`](productmanuals/))
 
-Edit [`databricks_etl/databricks.yml`](databricks_etl/databricks.yml) in the workspace (editor, Repos, or the bundle experience) and set **`variables`** for your workspace:
+### Bundle variables
+
+Set these in [`databricks_etl/databricks.yml`](databricks_etl/databricks.yml) before deploying:
 
 | Variable | Purpose |
 |----------|---------|
-| `catalog` | Unity Catalog catalog for DLT |
-| `schema` | Schema for DLT |
-| `table_prefix` | Prefix for Delta table names and for **job/pipeline display names** in the workspace |
-| `volume` | UC volume path used by pipelines (see step 3) |
-| `warehouse_id` | SQL warehouse ID for Genie-related notebook tasks in the jobs |
+| `catalog` | Unity Catalog catalog |
+| `schema` | Schema (database) |
+| `table_prefix` | Prefix for all Delta table and job display names |
+| `volume` | UC volume path, e.g. `/Volumes/<catalog>/<schema>/<volume>/` |
+| `warehouse_id` | SQL warehouse ID for Genie Space creation |
 
-For editing and committing YAML from the UI, see [Author bundles in the workspace](https://docs.databricks.com/aws/en/dev-tools/bundles/workspace-author).
+> **Note:** The bundle root is `databricks_etl/`, not the repo root. Open or `cd` into that directory before running any bundle commands.
 
-## 4. Deploy the bundle
+---
 
-Use the workspace **Deploy** flow for your bundle, choose the correct **target** (for example `dev` vs `prod`) as defined in [`databricks_etl/databricks.yml`](databricks_etl/databricks.yml), and deploy. Step-by-step help: [Tutorial: Create and deploy a bundle in the workspace](https://docs.databricks.com/aws/en/dev-tools/bundles/workspace-tutorial) and [Deploy bundles and run workflows from the workspace](https://docs.databricks.com/aws/en/dev-tools/bundles/workspace-deploy).
+### Option A: Deploy from the Workspace UI
 
-You **cannot** deploy the same bundle from the workspace bundle editor into **another** Databricks workspace; for that, use CI/CD (for example GitHub Actions) with the CLI, as recommended in [Collaborate on bundles in the workspace](https://docs.databricks.com/aws/en/dev-tools/bundles/workspace.html).
+1. In Databricks, add a Git folder and clone this repo.
+2. Open the `databricks_etl/` directory as your bundle project.
+3. Edit `databricks_etl/databricks.yml` and set the variables above.
+4. Use the workspace **Deploy** flow, choose your target (`dev` or `prod`), and deploy.
+   - Reference: [Deploy bundles and run workflows from the workspace](https://docs.databricks.com/aws/en/dev-tools/bundles/workspace-deploy)
+5. After a successful deploy, open **Workflows → Jobs** and run:
+   - `{table_prefix}_extract_productmanuals_job`
+   - `{table_prefix}_extract_invoices_job` *(optional)*
 
-## 5. Run the Databricks jobs
+---
 
-After a successful deploy, open **Workflows** → **Jobs** (or run workflows from the bundle UI as described in [Deploy bundles and run workflows from the workspace](https://docs.databricks.com/aws/en/dev-tools/bundles/workspace-deploy)). Job display names include `table_prefix`, for example:
+### Option B: Deploy from the CLI
 
-- `[dev <Your Name>]{table_prefix}_extract_invoices_job`
-- `[dev <Your Name>]{table_prefix}_extract_productmanuals_job`
+**1. Install and configure the Databricks CLI**
 
-When starting a run from the UI, you can set the job parameter **`create_agent`** to `false` if the Knowledge Assistant and Supervisor notebook tasks should be skipped; the default is `true`.
+```bash
+brew install databricks/tap/databricks          # macOS
+databricks auth login https://<workspace-host> --profile=<profile-name>
+databricks auth profiles | grep <profile-name>  # should show YES
+```
 
-Important: The Knowledge Assistant will take at least 15 min to build up. To reduce costs we do not let the job run until the syncing of the Agent has been completed. You can check the status on the Agents tab.
+Reference: [Install the Databricks CLI](https://docs.databricks.com/en/dev-tools/cli/index.html#install-the-databricks-cli)
 
-# Local Deployment via CLI
-
-## 1. Install the Databricks CLI and configure a profile
-
-1. **Install the Databricks CLI** (if not already installed):
-   - Follow [Install the Databricks CLI](https://docs.databricks.com/en/dev-tools/cli/index.html#install-the-databricks-cli).
-   - Example with Homebrew (macOS): `brew install databricks/tap/databricks`
-
-2. **Create a profile** for your workspace (pick one approach):
-   - **Browser (SSO)**: run  
-     `databricks auth login https://<your-workspace-host> --profile=<profile-name>`  
-     Complete sign-in in the browser. The profile is stored in `~/.databrickscfg`.
-   - **Personal access token (PAT)**: configure the same file (or env vars) so the profile has **host** and **token**; see [Databricks authentication](https://docs.databricks.com/en/dev-tools/auth/index.html). PAT is typical for scripts and CI.
-
-3. **Verify the profile**:  
-   `databricks auth profiles | grep <profile-name>` — a valid profile shows `YES`.
-
-The profile name in the deploy example below (`FEVM`) is only an example; substitute your own.
-
-## 2. Clone the repository
+**2. Clone the repository**
 
 ```bash
 git clone https://github.com/datanikkthegreek/databricks_data_extraction.git
 cd databricks_data_extraction
 ```
 
-## 3. Unity Catalog: catalog, schema, volume, and sample data
-
-1. In Databricks, create or choose a **catalog**, **schema**, and a **Unity Catalog volume** (managed or external) where ingestion files will live. See [What is Unity Catalog?](https://docs.databricks.com/en/data-governance/unity-catalog/index.html) and [Create and work with volumes](https://docs.databricks.com/en/volumes/index.html).
-
-2. Set the bundle `volume` variable (step 4) to the UC path prefix for that volume, in the form:  
-   `/Volumes/<catalog>/<schema>/<volume-name>/`  
-   (trailing slash is fine if it matches your `databricks.yml`.)
-
-3. **Upload sample files** so pipeline paths exist:
-   - **Product manuals pipeline**: upload the contents of the repo folder [`productmanuals/`](productmanuals/) into **`{volume}/productmanuals`** on the volume (the pipeline reads `${volume}/productmanuals`).
-   - **Invoices pipeline** (if you run the invoices job): place files under **`{volume}/invoices`** (see `01_parsed.sql` in the invoices transformation).
-
-## 4. Configure the bundle
-
-Edit [`databricks_etl/databricks.yml`](databricks_etl/databricks.yml) and set **`variables`** for your workspace:
-
-| Variable | Purpose |
-|----------|---------|
-| `catalog` | Unity Catalog catalog for DLT |
-| `schema` | Schema for DLT |
-| `table_prefix` | Prefix for Delta table names and for **job/pipeline display names** in the workspace |
-| `volume` | UC volume path used by pipelines (see step 3) |
-| `warehouse_id` | SQL warehouse ID for Genie-related notebook tasks in the jobs |
-
-## 5. Sync Python dependencies
-
-From the ETL bundle directory:
+**3. Sync Python dependencies**
 
 ```bash
 cd databricks_etl && uv sync
 ```
 
-This aligns the local environment with [`databricks_etl/pyproject.toml`](databricks_etl/pyproject.toml) before deploy.
-
-## 6. Deploy the bundle
-
-From `databricks_etl`, deploy using your profile. Example with PAT auth type and a profile named `FEVM`:
+**4. Deploy the bundle**
 
 ```bash
-cd databricks_etl
-databricks bundle deploy -p FEVM
+databricks bundle deploy -p <profile>
+# If you need to force PAT auth:
+DATABRICKS_AUTH_TYPE=pat databricks bundle deploy -p <profile>
 ```
 
-In some cases you might want to enforce PAT deployment
+**5. Run the jobs**
+
+From the workspace UI (**Workflows → Jobs**), or from the CLI:
 
 ```bash
-DATABRICKS_AUTH_TYPE=pat databricks bundle deploy -p FEVM
+databricks bundle run extract_productmanuals_job -p <profile>
+databricks bundle run extract_invoices_job -p <profile>
 ```
 
-## 7. Run the Databricks jobs
+> Set the job parameter `create_agent` to `false` to skip Knowledge Assistant and Supervisor Agent creation. Default is `true`.
+>
+> ⏱️ **Note:** The Knowledge Assistant takes at least 15 minutes to build. The job does not wait for it to complete — check status under the **Agents** tab.
 
-After a successful deploy, open **Workflows** → **Jobs** in the workspace. Run the jobs you need; their display names include `table_prefix`, for example:
+---
 
-- `[dev <Your Name>]{table_prefix}_extract_invoices_job` 
-- `[dev <Your Name>]{table_prefix}_extract_productmanuals_job` 
+## 📱 Databricks App
 
-From the repo, after `cd databricks_etl`, you can also trigger a run from the CLI, for example:
+The [`databricks_app/`](databricks_app/) bundle deploys a FastAPI + React app for uploading PDFs, triggering the extraction job, querying results, and chatting with the Supervisor Agent.
 
-```bash
-databricks bundle run extract_invoices_job -p FEVM
-databricks bundle run extract_productmanuals_job -p FEVM
-```
+> **The app bundle must be deployed from your local CLI** — the workspace bundle UI is not supported for this bundle.
 
-(Replace `FEVM` with your profile name.)
+### Configure `app.yml`
 
-You can also run the job with different settings and set the parameter create_agent to `false` if the knowledge assistant and supervisor should not be created. Default is `true`
+Edit [`databricks_app/app.yml`](databricks_app/app.yml) before deploying:
 
-Important: The Knowledge Assistant will take at least 15 min to build up. To reduce costs we do not let the job run until the syncing of the Agent has been completed. You can check the status on the Agents tab.
+| Environment variable | Purpose |
+|----------------------|---------|
+| `WAREHOUSE_ID` | SQL warehouse ID for query execution |
+| `JOB_ID` | Job ID of the extraction job to trigger from the app |
+| `VOLUME_PATH` | Volume path for PDF uploads, e.g. `/Volumes/<catalog>/<schema>/<volume>/` |
+| `AI_EXTRACT_PROCESSED_TABLE` | Full table name (`catalog.schema.table`) for extraction results |
+| `AGENT_ENDPOINT` | Serving endpoint name for the Supervisor Agent |
 
-## 8. Databricks App (`databricks_app`)
+### Configure the app name
 
-This step deploys the **Databricks App** (FastAPI + [apx](https://docs.databricks.com/aws/en/dev-tools/bundles/apps-tutorial)) that orchestrates uploads, SQL warehouse queries, and chat against your agent serving endpoint. It is a **separate** bundle from [`databricks_etl/`](databricks_etl/): the bundle root is the directory that contains [`databricks_app/databricks.yml`](databricks_app/databricks.yml). **Deploy this app bundle from your local CLI only** (workspace bundle UI is not used here); complete the substeps below from your machine.
-
-**Prerequisites:** Install the Databricks CLI and configure a profile as in [§ 1](#1-install-the-databricks-cli-and-configure-a-profile) (*Install the Databricks CLI and configure a profile*).
-
-### 8.1 Configure app environment (`app.yml`)
-
-Edit [`databricks_app/app.yml`](databricks_app/app.yml) in your **local clone** before you run `databricks bundle deploy` (this repo does not document deploying that bundle from the workspace UI).
-
-Runtime environment variables for the app are defined there:
-
-| `env` name | Purpose |
-|------------|---------|
-| `WAREHOUSE_ID` | SQL warehouse ID; the app builds the HTTP path `/sql/1.0/warehouses/{id}` for warehouse queries. |
-| `JOB_ID` | Databricks Jobs job ID used when triggering the processing job from the app. |
-| `VOLUME_PATH` | Unity Catalog volume path where PDFs are stored (same style as ETL: `/Volumes/<catalog>/<schema>/<volume>/`). |
-| `AI_EXTRACT_PROCESSED_TABLE` | Full table name (`catalog.schema.table`) for the processed / queryable extraction results. |
-| `AGENT_ENDPOINT` | Name of the **serving endpoint** for the supervisor / chat agent. |
-
-For **local** runs (for example `apx dev`), the backend also expects a workspace **host** and token fallback via `DATABRICKS_HOST` or `DATA_EXTRACTION_HOST`, and `FEVM_TOKEN` or `DATA_EXTRACTION_TOKEN`, typically in [`databricks_app/.env`](databricks_app/.env). On Databricks Apps, the platform usually supplies the forwarded access token; align any extra env with your workspace policy.
-
-### 8.2 Configure the deployed app name prefix
-
-In [`databricks_app/databricks.yml`](databricks_app/databricks.yml), set **`variables.app_name_prefix`**. The Apps resource **`name`** is `"${var.app_name_prefix}-data-extraction-app"` (for example `extract-7-data-extraction-app` when the default prefix is `extract-7`). You can override at deploy time without editing the file:
+In [`databricks_app/databricks.yml`](databricks_app/databricks.yml), set `variables.app_name_prefix`. The deployed app name will be `{app_name_prefix}-data-extraction-app`. Override at deploy time without editing the file:
 
 ```bash
 databricks bundle deploy -p <profile> --var app_name_prefix=my-team
 ```
 
-### 8.3 Build and deploy the app bundle
-
-From the app bundle directory (must be the folder containing `databricks.yml`):
+### Deploy
 
 ```bash
 cd databricks_app
@@ -224,51 +209,56 @@ databricks bundle validate -p <profile>
 databricks bundle deploy -p <profile>
 ```
 
-`databricks bundle deploy` runs the bundle `artifacts.app` build (`uv run apx build`) and syncs `.build` to the workspace. Replace `<profile>` with your CLI profile (see § 1).
+After deploy, open **Compute → Apps** in your workspace, find the app, start it if stopped, and open its URL.
 
-Official reference: [Deploy Databricks Apps with Databricks Asset Bundles](https://docs.databricks.com/aws/en/dev-tools/bundles/apps-tutorial).
+### App user permissions
 
-### 8.4 Start the app manually
+Users of the app need access to the underlying resources it calls:
 
-After a successful deploy, open the workspace **Apps** experience (for example **Compute → Apps**, depending on your workspace UI), select the app whose name matches `${app_name_prefix}-data-extraction-app`, and **start** it if it is stopped, then open the app URL. Policies vary by workspace; if the app does not auto-start, use this step before testing.
+| Resource | Required privilege |
+|----------|--------------------|
+| Volume | Read / write |
+| Processed table | `SELECT` |
+| SQL warehouse | `CAN_USE` |
+| Extraction job | `CAN_MANAGE_RUN` |
+| Agent serving endpoint | `CAN_QUERY` |
 
-### 8.5 Optional: deploy or refresh from the Apps CLI
+---
 
-You can point the app at an already-synced bundle build under your user’s `.bundle` path (for example after `databricks bundle deploy`). Use your workspace account segment and bundle target in place of the placeholders:
+## 🔧 Additional Configuration
 
-```bash
-databricks apps deploy <app-name> \
-  --source-code-path /Workspace/Users/<workspace-user>/.bundle/data-extraction-app/dev/files/.build
-```
+### Automatic file-arrival triggers
 
-Example (replace the user segment with yours):
+Both jobs support automatic triggering when new files land on the volume. Uncomment the `trigger` block in the job YAMLs and redeploy:
 
-```bash
-databricks apps deploy extract-7-data-extraction-app \
-  --source-code-path /Workspace/Users/nikolaos.servos@databricks.com/.bundle/data-extraction-app/dev/files/.build
-```
+- [`databricks_etl/resources/extract_productmanuals.job.yml`](databricks_etl/resources/extract_productmanuals.job.yml) — lines 10–13
+- [`databricks_etl/resources/extract_invoices.job.yml`](databricks_etl/resources/extract_invoices.job.yml) — lines 12–15
 
-- **`<app-name>`** must match the deployed app **`name`** in [`databricks_app/databricks.yml`](databricks_app/databricks.yml) (`${var.app_name_prefix}-data-extraction-app`).
-- **`data-extraction-app`** in the path is **`bundle.name`** in that file; **`<target>`** is the bundle target (for example `dev`).
+### Generating extraction schemas interactively
 
-### 8.6 App users and underlying resources
+Use **Agents → Information Extraction** in the Databricks UI to design your extraction schema interactively before embedding it as code. Background: [Intelligent document processing](https://docs.databricks.com/aws/en/generative-ai/agent-bricks/intelligent-document-processing).
 
-Anyone who should **use** the Data Extraction App (not only deploy it) needs **Unity Catalog and workspace access** to the same underlying resources the app calls: the **volume** used for uploads, the **processed table** queried in SQL, the **SQL warehouse**, the **Jobs** job triggered for processing, and the **agent serving endpoint** used for chat. Grant the appropriate privileges (for example read/write on the volume, `SELECT` on the table, `CAN_USE` on the warehouse, `CAN_MANAGE_RUN` or run permission on the job, and `CAN_QUERY` on the endpoint) so each user’s identity is allowed for those objects in your workspace (typically the signed-in user when the app runs on Databricks Apps).
+---
 
-## Additional information
+## 🌍 Applying This to Other Use Cases
 
+The same parse → extract → evaluate pattern applies to any domain where structured data needs to be pulled from unstructured documents:
 
+| Industry | Example use case |
+|----------|-----------------|
+| Manufacturing | Extract component specs from supplier data sheets for BOM automation |
+| Healthcare | Pull structured fields from clinical trial reports or medical device docs |
+| Financial Services | Parse loan agreements, insurance policies, or regulatory filings |
+| Retail | Build product catalogs from vendor-provided PDFs for marketplace onboarding |
 
-### Automatic job runs (file arrival)
+---
 
-The **invoices** and **product manuals** jobs can each run automatically when new files land on the UC volume. Uncomment the commented `trigger` block (`pause_status: UNPAUSED` and `file_arrival` with `url: ${var.volume}`) in the job definition, then redeploy the bundle:
+## 📚 Resources
 
-- [`databricks_etl/resources/extract_invoices.job.yml`](databricks_etl/resources/extract_invoices.job.yml) — lines **12–15**
-- [`databricks_etl/resources/extract_productmanuals.job.yml`](databricks_etl/resources/extract_productmanuals.job.yml) — lines **10–13**
-
-The job watches the configured volume path for arrivals (see Databricks job trigger documentation for behavior and limits).
-
-### Generating extraction code (Agents)
-
-To scaffold or iterate on extraction logic, use the Databricks UI: **Agents → Information Extraction**, which builds on **Intelligent Document Processing** (document parsing, extraction, and classification on the lakehouse). Background: [Intelligent document processing](https://docs.databricks.com/aws/en/generative-ai/agent-bricks/intelligent-document-processing).
-
+- 📖 [Blog post: Intelligent Document Processing for Data Extraction](https://community.databricks.com/t5/technical-blog/intelligent-document-processing-for-data-extraction-transforming/ba-p/153847)
+- 📄 [`ai_parse_document` documentation](https://docs.databricks.com/aws/en/sql/language-manual/functions/ai_parse_document)
+- 🔍 [`ai_extract` documentation](https://docs.databricks.com/aws/en/sql/language-manual/functions/ai_extract)
+- 📊 [MLflow 3 GenAI evaluation](https://docs.databricks.com/aws/en/mlflow3/genai/eval-monitor/)
+- 🤖 [Intelligent Document Processing overview](https://docs.databricks.com/aws/en/generative-ai/agent-bricks/intelligent-document-processing)
+- 📦 [Databricks Asset Bundles](https://docs.databricks.com/aws/en/dev-tools/bundles/)
+- 🗄️ [Lakeflow Spark Declarative Pipelines](https://docs.databricks.com/ldp/)
