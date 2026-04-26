@@ -2,6 +2,10 @@
 
 A full-stack app for uploading PDFs, triggering the extraction pipeline, querying results, and chatting with the Supervisor Agent — built with FastAPI + React using the [APX framework](https://github.com/databricks-solutions/apx).
 
+![Architecture](../docs/images/Architecture.png)
+
+*The Databricks App corresponds to the **Web App** box in the bottom-left of the diagram — the customer-facing entry point on Databricks One that ties the Supervisor Agent, Genie Space, and extraction pipeline together.*
+
 > **This bundle must be deployed from your local CLI.** The workspace bundle UI is not supported for app bundles.
 
 ---

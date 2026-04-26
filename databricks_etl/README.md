@@ -4,6 +4,10 @@ This bundle deploys the production **Intelligent Document Processing** pipeline 
 
 **Pipeline steps:** Parse PDFs with `ai_parse_document` → Extract structured fields with `ai_extract` → Flatten into a typed Delta table → Evaluate quality with MLflow → Create Genie Space, Knowledge Assistant, and Supervisor Agent.
 
+![Architecture](../docs/images/Architecture.png)
+
+*Deploying this bundle provisions everything shown above — from the PDF ingestion streaming tables through to the Genie Space, Knowledge Assistant, and Supervisor Agent on Databricks One.*
+
 ---
 
 ## 🔧 Prerequisites
