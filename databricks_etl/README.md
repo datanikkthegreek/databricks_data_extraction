@@ -86,3 +86,25 @@ Both jobs can trigger automatically when new files land on the volume. Uncomment
 
 Use **Agents → Information Extraction** in the Databricks UI to design your schema interactively before embedding it as code.
 Reference: [Intelligent document processing](https://docs.databricks.com/aws/en/generative-ai/agent-bricks/intelligent-document-processing)
+
+---
+
+## 💬 Example Questions for the Supervisor Agent
+
+Once deployed, the Supervisor Agent unifies the Genie Space (structured SQL queries) and the Knowledge Assistant (open-ended document Q&A) into a single interface. Here are example questions to try:
+
+**Structured data queries (answered via Genie Space):**
+- *"Which drill has the highest maximum torque?"*
+- *"Compare all drills by weight and voltage."*
+- *"What is the rated voltage of the Bosch GSR 18V-65?"*
+- *"Which products support a no-load speed above 1800 rpm?"*
+
+**Document Q&A (answered via Knowledge Assistant):**
+- *"What are the safety instructions for the DeWalt DCD991?"*
+- *"What accessories are compatible with the Milwaukee 2606-20?"*
+- *"What does the Makita DF033D manual say about maintenance?"*
+- *"What is the warranty policy for Bosch power tools?"*
+
+**Cross-cutting questions (agent routes intelligently):**
+- *"Which drill is lightest and what battery does it use?"*
+- *"Summarise the key differences between all four drills."*
