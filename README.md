@@ -28,10 +28,27 @@ Transform unstructured product manuals into structured, queryable data using **D
 
 ```
 .
-├── demo/                  # ✅ Start here — self-contained demo notebook
-├── databricks_etl/        # Production Lakeflow pipeline + Jobs (Asset Bundle)
-├── databricks_app/        # FastAPI + React Databricks App (Asset Bundle)
-└── productmanuals/        # Sample PDF product manuals
+├── demo/                  # ✅ Start here — single notebook that runs the full pipeline
+│                          #    end to end: catalog setup → parse → extract → evaluate
+│
+├── databricks_etl/        # Production-grade Lakeflow pipeline deployed as a Databricks
+│                          #    Asset Bundle. Parses PDFs, extracts structured fields, and
+│                          #    builds three business-user interfaces on top of the data:
+│                          #    • Genie Space    — ask natural-language questions about the
+│                          #                       extracted structured product catalog
+│                          #    • Knowledge Assistant — ask open-ended questions answered
+│                          #                       directly from the raw PDF documents
+│                          #    • Supervisor Agent — single chat interface that routes
+│                          #                       questions to Genie or Knowledge Assistant
+│                          #                       depending on what is being asked
+│
+├── databricks_app/        # Full-stack web application (FastAPI + React) deployed as a
+│                          #    Databricks App. Lets business users upload PDFs, trigger
+│                          #    the extraction pipeline, browse the structured results,
+│                          #    and chat with the Supervisor Agent — all in one UI.
+│
+└── productmanuals/        # Sample PDF product manuals (Bosch, Makita, DeWalt, Milwaukee)
+                           #    used to demonstrate the pipeline
 ```
 
 ---
