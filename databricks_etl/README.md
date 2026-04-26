@@ -35,49 +35,14 @@ Set these in [`databricks.yml`](databricks.yml) before deploying:
 
 ---
 
-## 🖥️ Option A: Deploy from the Workspace UI
+## 🚀 Deployment
 
 1. In Databricks, add a Git folder and clone this repo.
 2. Open the `databricks_etl/` directory as your bundle project.
-3. Edit `databricks.yml` and set the variables above.
+3. Edit [`databricks.yml`](databricks.yml) and set the variables above.
 4. Use the workspace **Deploy** flow, choose your target (`dev` or `prod`), and deploy.
    - Reference: [Deploy bundles and run workflows from the workspace](https://docs.databricks.com/aws/en/dev-tools/bundles/workspace-deploy)
 5. After deploy, open **Workflows → Jobs** and run `{table_prefix}_extract_productmanuals_job`.
-
----
-
-## 💻 Option B: Deploy from the CLI
-
-**1. Install and configure the Databricks CLI**
-
-```bash
-brew install databricks/tap/databricks          # macOS
-databricks auth login https://<workspace-host> --profile=<profile-name>
-databricks auth profiles | grep <profile-name>  # should show YES
-```
-
-**2. Sync Python dependencies**
-
-```bash
-cd databricks_etl && uv sync
-```
-
-**3. Deploy**
-
-```bash
-databricks bundle deploy -p <profile>
-# Force PAT auth if needed:
-DATABRICKS_AUTH_TYPE=pat databricks bundle deploy -p <profile>
-```
-
-**4. Run the jobs**
-
-From the workspace UI (**Workflows → Jobs**), or from the CLI:
-
-```bash
-databricks bundle run extract_productmanuals_job -p <profile>
-databricks bundle run extract_invoices_job -p <profile>
-```
 
 ---
 
