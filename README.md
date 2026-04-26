@@ -53,21 +53,21 @@ Transform unstructured product manuals into structured, queryable data using **D
 
 ---
 
-## 🧭 Where to Go Next
+## 📂 Component Guides
 
-| I want to… | Go to |
-|-----------|-------|
-| Try the pipeline quickly without any infrastructure | [▶ Demo notebook](demo/demo_notebook.ipynb) |
-| Deploy the production Lakeflow pipeline and Jobs | [▶ ETL deployment guide](databricks_etl/README.md) |
-| Deploy the Databricks App (upload UI + chat) | [▶ App deployment guide](databricks_app/README.md) |
+### 🗒️ Demo Notebook — [`demo/`](demo/demo_notebook.ipynb)
 
----
-
-## 🚀 Quick Start: Demo Notebook
-
-Open [`demo/demo_notebook.ipynb`](demo/demo_notebook.ipynb) and run top to bottom — it handles everything from catalog creation to MLflow evaluation in a single self-contained notebook.
+The demo notebook provides a self-contained introduction to the solution. It covers catalog and volume creation, PDF parsing with `ai_parse_document`, structured field extraction with `ai_extract`, result flattening into a typed Delta table, and extraction quality evaluation with MLflow — all executable in sequence without any pipeline infrastructure.
 
 **Prerequisites:** Unity Catalog enabled · DBR 14.3 ML or later · `CREATE CATALOG` privilege
+
+### ⚙️ ETL Pipeline — [`databricks_etl/`](databricks_etl/README.md)
+
+The ETL bundle contains the production-grade Lakeflow Spark Declarative Pipeline and Lakeflow Jobs. It deploys the full incremental processing pipeline along with a Genie Space for natural-language querying of the structured output, a Knowledge Assistant for open-ended Q&A directly against the source PDFs, and a Supervisor Agent that unifies both interfaces. For deployment instructions, see the [ETL README](databricks_etl/README.md).
+
+### 📱 Databricks App — [`databricks_app/`](databricks_app/README.md)
+
+The application bundle deploys a full-stack web application built with FastAPI and React. It provides a user interface for uploading PDF documents, triggering the extraction pipeline, browsing structured results, and conversing with the Supervisor Agent. For deployment and local development instructions, see the [App README](databricks_app/README.md).
 
 ---
 
