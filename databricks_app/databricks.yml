@@ -7,7 +7,7 @@ bundle:
 variables:
   app_name_prefix:
     description: Prefix for the deployed Databricks App name only (not bundle.name).
-    default: <APP_NAME_PREFIX>
+    default: test
 
 resources:
   apps:
