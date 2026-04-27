@@ -1,8 +1,8 @@
-# 🧠 Intelligent Document Processing for Data Extraction – Solution Accelerator
+# 🧠 Intelligent Document Processing for Data Extraction: Solution Accelerator
 
 **Authors: Merve Karali and Nikolaos Servos**
 
-The solution accelerator for the blog post **[Intelligent Document Processing for Data Extraction](https://community.databricks.com/t5/technical-blog/intelligent-document-processing-for-data-extraction-transforming/ba-p/153847)**. From a self-contained demo notebook to a full production system — `ai_parse_document`, `ai_extract`, MLflow evaluation, Genie Space, Knowledge Assistant, Supervisor Agent, and a Databricks App, all in one repo.
+The solution accelerator for the blog post **[Intelligent Document Processing for Data Extraction](https://community.databricks.com/t5/technical-blog/intelligent-document-processing-for-data-extraction-transforming/ba-p/153847)**, covering the complete implementation from raw document ingestion to business-ready interfaces: `ai_parse_document` and `ai_extract` for structured data extraction, MLflow evaluation for quality tracking, a Genie Space and Knowledge Assistant for natural-language access to the results, a Supervisor Agent that unifies both, and a Databricks App as the end-user interface — all in one repo.
 
 ---
 
