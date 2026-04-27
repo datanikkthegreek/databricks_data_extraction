@@ -20,7 +20,13 @@ Transform unstructured product manuals into structured, queryable data using **D
 
 ## 🔄 Pipeline Overview
 
+The three core steps — parsing raw PDFs, extracting structured fields, and flattening the results — form the foundation of the solution and the focus of the demo notebook and blog post.
+
 ![PDF Processing Pipeline](docs/images/DataExtraction.png)
+
+For the full production setup, the pipeline is extended into an end-to-end system: orchestrated by Lakeflow Jobs, governed by Unity Catalog, and surfaced to business users through a Genie Space, Knowledge Assistant, Supervisor Agent, and a Databricks App — all deployed via Asset Bundles.
+
+![Full Architecture](docs/images/Architecture.png)
 
 ---
 
