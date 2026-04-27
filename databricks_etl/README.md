@@ -17,19 +17,19 @@ This bundle deploys the production-grade **Intelligent Document Processing** pip
 
 Before deploying the bundle, create the required Unity Catalog objects and upload sample PDFs:
 
+1. **Create schema** (use an existing catalog or create a new one):
 ```sql
--- 1. Create schema (use an existing catalog or create a new one)
 CREATE SCHEMA IF NOT EXISTS <CATALOG>.<SCHEMA>;
-
--- 2. Create the volume
-CREATE VOLUME IF NOT EXISTS <CATALOG>.<SCHEMA>.<VOLUME_NAME>;
-
--- 3. Create the productmanuals subfolder inside the volume
-%python
-dbutils.fs.mkdirs("/Volumes/<CATALOG>/<SCHEMA>/<VOLUME_NAME>/productmanuals")
 ```
 
-Upload your PDF files into the subfolder via the Databricks UI: navigate to **Catalog → Volumes → `<VOLUME_NAME>` → Upload to this volume**.
+2. **Create the volume**:
+```sql
+CREATE VOLUME IF NOT EXISTS <CATALOG>.<SCHEMA>.<VOLUME_NAME>;
+```
+
+3. **Create a `productmanuals` folder** inside the volume via the Databricks UI: navigate to **Catalog → `<VOLUME_NAME>` → Create folder**.
+
+4. **Upload your PDF files** into the `productmanuals` folder via the Databricks UI: navigate to **Catalog → Volumes → `<VOLUME_NAME>` → Upload to this volume**.
 
 > 💡 The pipeline reads from `{volume}/productmanuals` — this subfolder must contain at least one `.pdf` file before running the job. Use the sample files from [`../productmanuals/`](../productmanuals/) to get started.
 
