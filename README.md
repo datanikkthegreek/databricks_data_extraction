@@ -1,10 +1,8 @@
-# 🧠 Intelligent Document Processing: PDF → Structured Product Catalog
+# 🧠 Intelligent Document Processing for Data Extraction – Solution Accelerator
 
-Transform unstructured product manuals into structured, queryable data using **Databricks Agent Bricks AI Functions** — no custom model training, no rigid templates.
+**Authors: Merve Karali and Nikolaos Servos**
 
-**Authors:** Merve Karali and Nikolaos Servos
-
-> 📖 **Read the full blog post:** [Intelligent Document Processing for Data Extraction](https://community.databricks.com/t5/technical-blog/intelligent-document-processing-for-data-extraction-transforming/ba-p/153847)
+The solution accelerator for the blog post **[Intelligent Document Processing for Data Extraction](https://community.databricks.com/t5/technical-blog/intelligent-document-processing-for-data-extraction-transforming/ba-p/153847)**. From a self-contained demo notebook to a full production system — `ai_parse_document`, `ai_extract`, MLflow evaluation, Genie Space, Knowledge Assistant, Supervisor Agent, and a Databricks App, all in one repo.
 
 ---
 
