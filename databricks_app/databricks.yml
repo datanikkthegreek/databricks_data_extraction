@@ -5,14 +5,14 @@ bundle:
   name: data-extraction-app
 
 variables:
-  app_name_prefix:
-    description: Prefix for the deployed Databricks App name only (not bundle.name).
-    default: test
+  app_name:
+    description: Name for the deployed Databricks App.
+    default: intelligent-document-processing-app
 
 resources:
   apps:
     data-extraction-app:
-      name: "${var.app_name_prefix}-data-extraction-app"
+      name: "${var.app_name}"
       description: "Data Extraction App with PDF upload"
       source_code_path: ${workspace.file_path}/.build
       user_api_scopes:
