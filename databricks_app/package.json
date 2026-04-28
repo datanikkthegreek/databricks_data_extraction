@@ -27,7 +27,7 @@
         "@opentelemetry/exporter-logs-otlp-http": "^0.215.0",
         "@opentelemetry/resources": "^2.7.0",
         "@opentelemetry/sdk-logs": "^0.215.0",
-        "@tailwindcss/vite": "^0.0.0-insiders.4527123",
+        "@tailwindcss/vite": "^0.0.0-insiders.69ad7cc",
         "@tanstack/react-router-devtools": "1.145.7",
         "@tanstack/router-generator": "^1.166.32",
         "@tanstack/router-plugin": "^1.167.22",

@@ -1,12 +1,12 @@
 command: ["uvicorn", "data_extraction_app.backend.app:app", "--workers", "2"]
 env:
   - name: WAREHOUSE_ID
-    value: "<SQL_WAREHOUSE_ID>"
+    value: "4615730c28d25332"
   - name: JOB_ID
-    value: "<JOB_ID>"
+    value: "723284732123840"
   - name: VOLUME_PATH
-    value: "/Volumes/<CATALOG>/<SCHEMA>/<VOLUME_NAME>/"
+    value: "/Volumes/nikks_fevm_workspace_7405607030687545/nikktest2/docs"
   - name: AI_EXTRACT_PROCESSED_TABLE
-    value: "<CATALOG>.<SCHEMA>.<TABLE_PREFIX>_productmanuals_processed"
+    value: "nikks_fevm_workspace_7405607030687545.nikktest2.nikkstest001_productmanuals_processed"
   - name: AGENT_ENDPOINT
-    value: "<SUPERVISOR_AGENT_ENDPOINT_NAME>"
+    value: "mas-de915fff-endpoint"

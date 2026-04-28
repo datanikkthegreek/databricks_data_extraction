@@ -7,7 +7,7 @@ bundle:
 variables:
   app_name:
     description: Name for the deployed Databricks App.
-    default: intelligent-document-processing-app
+    default: nikks-app-001
 
 resources:
   apps:
