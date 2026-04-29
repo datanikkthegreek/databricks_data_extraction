@@ -68,16 +68,16 @@ cd databricks_app && uv sync
 databricks bundle deploy -p <profile>
 ```
 
-The app is deployed with the name defined in [`databricks.yml`](databricks.yml) under `variables.app_name` (default: `intelligent-document-processing-app`).
+The app is deployed with the name defined in [`databricks.yml`](databricks.yml) under `variables.app_name`.
 
 ### 5. Start the app
 
-Open your workspace, navigate to **Compute → Apps**, find `intelligent-document-processing-app`, and click **Start**.
+Open your workspace, navigate to **Compute → Apps**, find your app by the name configured in `databricks.yml`, and click **Start**.
 
 ### 6. Sync files
 
 ```bash
-databricks apps deploy intelligent-document-processing-app --source-code-path /Workspace/Users/<your-email@company.com>/.bundle/data-extraction-app/dev/files/.build
+databricks apps deploy <app-name> --source-code-path /Workspace/Users/<your-email@company.com>/.bundle/data-extraction-app/dev/files/.build
 ```
 
 ---
