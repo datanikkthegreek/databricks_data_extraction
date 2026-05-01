@@ -44,7 +44,7 @@ Set these in [`databricks.yml`](databricks.yml) before deploying:
 | `catalog` | Unity Catalog catalog |
 | `schema` | Schema (database) |
 | `table_prefix` | Prefix for all Delta table and job display names |
-| `volume` | UC volume root path — PDFs must be placed in the `productmanuals` subfolder inside it, e.g. `/Volumes/<CATALOG>/<SCHEMA>/<VOLUME_NAME>/` |
+| `volume` | UC volume path where PDFs are stored, e.g. `/Volumes/<CATALOG>/<SCHEMA>/<VOLUME_NAME>` |
 | `warehouse_id` | SQL warehouse ID for Genie Space creation |
 | `evaluation_experiment` | MLflow experiment path for extraction quality evaluation (defaults to `/Shared/<table_prefix>_product_manuals_extraction_eval`) |
 
